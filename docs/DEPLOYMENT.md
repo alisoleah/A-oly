@@ -1,103 +1,84 @@
 # Deployment Guide — aïoly storefront
 
-Two target platforms: **Supabase** (Postgres database) + **Vercel** (Next.js hosting).
-Local dev uses SQLite; production uses Postgres. This document is the exact path.
+**Supabase** hosts the Postgres database · **Vercel** hosts the Next.js app.
+Both environments (local dev and production) point at the same Supabase Postgres
+instance, so there's no dev/prod drift.
 
-## Why Postgres for production
+## Current state
 
-SQLite is a single file — fine locally, wrong for a stateless host like Vercel where
-each serverless instance has its own ephemeral filesystem. Supabase gives us a managed
-Postgres with connection pooling, which is what we need.
+The schema is already PostgreSQL (`prisma/schema.prisma`, `provider = "postgresql"`).
+Migrations are checked into `prisma/migrations/` (Postgres dialect). A one-command
+deploy script provisions + seeds a fresh Supabase project.
 
-## The schema is already provider-agnostic
+## The two connection strings (Supabase)
 
-`prisma/schema.prisma` uses no SQLite-specific features:
-- Enums (`Collection`, `Size`, `OrderStatus`, `PaymentMethod`) — stored as TEXT on
-  SQLite, become real `ENUM` types on Postgres.
-- `cuid()` IDs, `@unique` constraints, JSON-via-STRING columns — all portable.
-- App code uses Prisma exclusively (no raw SQL, no `$queryRaw`). Switching providers
-  touches **one line** of the schema.
+Supabase serves two endpoints off the same pooler host. You need **both**:
 
-## Switching to Supabase (the 4 steps)
+| Env var | Supabase endpoint | Port | Used for |
+|---|---|---|---|
+| `DATABASE_URL` | **Transaction pooler** | `6543` | The running app (Vercel functions) |
+| `DIRECT_DATABASE_URL` | **Session pooler / direct** | `5432` | `prisma migrate` (DDL not allowed over the transaction pooler) |
 
-### 1. Create the Supabase project
-- supabase.com → New Project → pick a region close to your users (for Egypt: eu-central / Frankfurt is a reasonable default).
-- Wait for it to provision. Note the **Connection string** (URI format), the pooling port (`6543`) and the direct port (`5432`).
+Both come from **Supabase Dashboard → Project Settings → Database → Connection string → URI**.
 
-### 2. Flip the provider + connect
-In `prisma/schema.prisma`, change:
+> **Password with special characters must be URL-encoded.** Characters like `?`, `&`,
+> `#`, `,` break the connection string silently. Encode them (e.g. `?` → `%3F`).
+> The local `.env` (gitignored) holds the encoded form.
 
-```prisma
-datasource db {
-  provider = "postgresql"   // was "sqlite"
-  url      = env("DATABASE_URL")
-}
-```
-
-Set `DATABASE_URL` to the Supabase **direct** connection string for migrations
-(direct connection uses port `5433`; pooling on `6543` is for the running app):
-
-```
-DATABASE_URL="postgresql://postgres.[project]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
-```
-
-> Supabase provides both a "Direct connection" and a "Transaction pooler" string in
-> Dashboard → Project Settings → Database → Connection string. Use **Direct** for
-> `prisma migrate`, and the **pooler** URL for the runtime `DATABASE_URL` on Vercel.
-
-### 3. Generate a Postgres migration + apply
-
-The existing `prisma/migrations/` was generated against SQLite. For a fresh Postgres DB,
-reset the migrations to the Postgres dialect:
+## Provisioning a Supabase project (one-time)
 
 ```bash
-# one-time, against the Supabase DB
-rm -rf prisma/migrations          # remove the SQLite-flavored baseline
-npx prisma migrate dev --name init   # regenerates init for Postgres + applies it
-npm run seed                       # load the 5 launch styles
+# 1. Create the project at supabase.com (any region, Free tier is fine).
+# 2. Put both connection strings (URL-encoded password) into .env:
+#      DATABASE_URL="postgresql://...pooler...:6543/postgres?pgbouncer=true&connection_limit=1"
+#      DIRECT_DATABASE_URL="postgresql://...direct...:5432/postgres"
+# 3. Deploy schema + seed:
+npm run deploy-db
 ```
 
-In ongoing CI/deploys, use `prisma migrate deploy` (never `migrate dev` in prod).
+`npm run deploy-db` validates the URLs, applies migrations via the direct connection,
+then seeds the 5 launch styles via the pooler. Safe to re-run (idempotent upserts).
 
-### 4. Run the preflight, then deploy
-
-```bash
-npm run preflight   # production policy checks (provider, email, secret length)
-```
+Verify in the Supabase Dashboard → **Table Editor** → you should see Product, Variant,
+Price, Image tables populated.
 
 ## Vercel hosting
 
-1. Push the repo to GitHub (already done).
-2. vercel.com → New Project → import the repo. Vercel auto-detects Next.js.
-3. Set environment variables (Dashboard → Settings → Environment Variables). Copy from `.env.example` and fill production values:
+1. Push the repo to GitHub (already done: `github.com/alisoleah/A-oly`).
+2. vercel.com → **Add New → Project** → import `alisoleah/A-oly`. Vercel auto-detects Next.js.
+3. **Environment Variables** (Settings → Environment Variables) — copy from `.env.example`
+   and fill production values. The essential set:
 
-   | var | prod value |
+   | var | value |
    |---|---|
-   | `DATABASE_URL` | Supabase **pooler** connection string (port 6543) |
+   | `DATABASE_URL` | Supabase **pooler** string (port 6543), `?pgbouncer=true&connection_limit=1` |
+   | `DIRECT_DATABASE_URL` | Supabase **direct** string (port 5432) |
    | `NODE_ENV` | `production` |
    | `ADMIN_EMAIL` | your real admin email |
-   | `ADMIN_PASSWORD_HASH` | output of `npx tsx scripts/hash-password.ts` |
+   | `ADMIN_PASSWORD_HASH` | output of `npx tsx scripts/hash-password.ts "<your password>"` |
    | `SESSION_SECRET` | `openssl rand -hex 32` |
-   | `PAYMENT_PROVIDER` | `paymob` |
-   | `PAYMOB_*` | sandbox keys for staging, live keys for prod |
-   | `EMAIL_PROVIDER` | `resend` (+ `RESEND_API_KEY`, `EMAIL_FROM`) |
-   | `APP_BASE_URL` | your Vercel domain |
+   | `PAYMENT_PROVIDER` | `mock` (until Paymob keys are ready) |
+   | `EMAIL_PROVIDER` | `console` (staging) / `resend` (prod, + `RESEND_API_KEY`) |
+   | `APP_BASE_URL` | your Vercel domain (set after first deploy, or the preview URL) |
+   | `SHIPPING_FEE_PIASTERS` | `6000` |
+   | `FREE_SHIPPING_THRESHOLD_PIASTERS` | `500000` |
+   | `COD_ENABLED_COUNTRIES` | `EG` |
 
-4. Deploy. Vercel runs `npm run build` (which runs `prisma generate` via postinstall
-   if you add it — see below).
-
-### Optional: auto-run migrations on deploy
-
-Add to `package.json` a `postbuild` that runs `prisma migrate deploy` so schema is
-always current. (Only enable once you trust the migration history.)
-
-```json
-"postbuild": "prisma migrate deploy && prisma generate"
-```
+4. **Deploy.** Vercel runs `npm run build` (`next build`) which generates the Prisma client.
+5. (Optional) Enable `postbuild: "prisma migrate deploy"` in package.json so schema stays
+   current on every deploy — only after you trust the migration history.
 
 ## Connection pooling note
 
-Supabase's free tier allows limited direct connections. For a serverless host like
-Vercel, always use the **pooler** URL (`...pooler.supabase.com:6543`) as the runtime
-`DATABASE_URL` to avoid exhausting connection slots. Direct connections (port 5432)
-are only for running migrations.
+Vercel functions are ephemeral and spin up many concurrent instances. Always use the
+**transaction pooler** (port 6543) as the runtime `DATABASE_URL` — the pooler multiplexes
+connections so you never exhaust Supabase's connection limit. Direct connections (5432)
+are only for running migrations, which happen at build/deploy time, not per-request.
+
+## Rotating the database password
+
+If a credential leaks or for routine hygiene:
+1. Supabase Dashboard → Project Settings → Database → **Reset database password**.
+2. Re-encode the new password (special chars → percent-encoding).
+3. Update `.env` locally and the Vercel env vars.
+4. Redeploy.
