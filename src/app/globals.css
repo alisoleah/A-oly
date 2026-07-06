@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/*
+ * aïoly design tokens — the ONLY colors allowed (see design-system.md §1).
+ * Tailwind v4 @theme exposes these as utilities:
+ *   bg-ivory, text-ink, border-line, bg-gold, font-display, radius-pill, ease-brand …
+ * No arbitrary hex values in components.
+ */
+@theme {
+  /* ── Palette ─────────────────────────────────────── */
+  --color-ivory: #f5f1ea; /* page background — never pure white */
+  --color-ivory-deep: #ede7dc; /* cards, section alternation */
+  --color-ink: #1a1a1a; /* primary text, primary buttons */
+  --color-ink-soft: #4a4a46; /* secondary text */
+  --color-gold: #a9814f; /* THE accent — one use per view max */
+  --color-gold-soft: #c4a67f; /* hover/active of gold */
+  --color-line: #d9d2c5; /* hairline borders, dividers */
+  --color-error: #8c3b2e; /* muted brick */
+  --color-success: #5a6b4f; /* muted olive */
+
+  /* ── Type ────────────────────────────────────────── */
+  --font-display: var(--font-cormorant), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* ── Radius ──────────────────────────────────────── */
+  --radius-none: 0; /* default — sharp edges are part of the look */
+  --radius-pill: 999px; /* only: quantity stepper, filter chips */
+
+  /* ── Motion ──────────────────────────────────────── */
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-duration-fast: 150ms;
+  --animate-duration-base: 300ms;
+  --animate-duration-slow: 600ms;
+
+  /* ── Spacing scale (4px base, steps from design-system.md) ── */
+  --spacing: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Base layer — element defaults that every screen inherits.
+ * ───────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    /* Logical property: padding-block/inline travel with writing direction (RTL-ready) */
+    background-color: var(--color-ivory);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-size: 1rem; /* 16px body */
+    line-height: 1.625; /* 26/16 */
+    min-height: 100dvh;
+  }
+
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    text-transform: lowercase;
+    letter-spacing: 0.01em;
+  }
+
+  /* Meta / breadcrumbs / eyebrows */
+  .text-meta {
+    font-size: 0.8125rem; /* 13px */
+    line-height: 1.25; /* 20px */
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-ink-soft);
+  }
+
+  /* Price — tabular figures so digits line up in rows */
+  .text-price {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  /* Focus visible: 2px ink outline offset 2px — never remove (a11y §8) */
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  /* Gold is decorative/large-text only — never body copy (contrast §8) */
+  ::selection {
+    background-color: var(--color-gold);
+    color: var(--color-ivory);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Reveal-on-scroll: opacity + translateY(8px), settles once.
+ * Respects prefers-reduced-motion (motion §7).
+ * ───────────────────────────────────────────────────────────── */
+@layer utilities {
+  .reveal {
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      opacity var(--animate-duration-base) var(--ease-brand),
+      transform var(--animate-duration-base) var(--ease-brand);
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Container: 1280 max, 24px gutter mobile / 48px desktop */
+  .container-brand {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: 24px;
+  }
+  @media (min-width: 768px) {
+    .container-brand {
+      padding-inline: 48px;
+    }
+  }
+
+  /* Section rhythm */
+  .section-y {
+    padding-block: 56px;
+  }
+  @media (min-width: 768px) {
+    .section-y {
+      padding-block: 96px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

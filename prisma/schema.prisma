@@ -1,0 +1,238 @@
+// aïoly storefront — Prisma schema
+// All money is integer piasters (EGP × 100). See src/lib/money.ts.
+// Enums mirror the order state machine + payment seams in CLAUDE.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Dev: SQLite (file). Prod: PostgreSQL (Neon/Supabase) via DATABASE_URL.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Catalog ──────────────────────────────────────────────────
+
+enum Collection {
+  AETHER
+  AETHRA
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  collection  Collection
+  description String
+  fabricNote  String
+  careNote    String
+  featured    Boolean     @default(false)
+  published   Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  variants Variant[]
+  images   Image[]
+
+  @@index([collection, published])
+  @@index([featured])
+}
+
+/// Size options — XS–XL. Stored as enum for validation at the DB layer.
+enum Size {
+  XS
+  S
+  M
+  L
+  XL
+}
+
+model Variant {
+  id         String   @id @default(cuid())
+  productId  String
+  colorway   String // e.g. "Ivory", "Ink", "Sand"
+  size       Size
+  sku        String   @unique
+  stock      Int      @default(0) // current sellable units; decremented atomically on order
+  /// Set aside by PENDING_PAYMENT orders; available = stock - reserved.
+  reserved   Int      @default(0)
+  weightGrams Int     @default(500)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  prices     Price[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([productId, colorway, size])
+  @@index([productId])
+}
+
+/// Per-variant, per-currency price. EGP only at launch; AED/SAR rows later.
+/// unitAmount is integer piasters.
+model Price {
+  id          String @id @default(cuid())
+  variantId   String
+  currency    String @default("EGP") // ISO 4217
+  unitAmount  Int // integer piasters — never a float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, currency])
+  @@index([currency])
+}
+
+model Image {
+  id        String @id @default(cuid())
+  productId String
+  colorway  String? // null = hero/primary across colorways
+  url       String
+  alt       String // real alt text — garment, colorway, context (a11y §8)
+  sortOrder Int    @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, colorway, sortOrder])
+}
+
+// ── Cart (server-persisted, cookie-keyed for guests) ─────────
+
+model Cart {
+  id        String    @id @default(cuid())
+  /// Unguessable cookie token — the cart's only handle from the browser.
+  cookieToken String @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items CartItem[]
+
+  @@index([cookieToken])
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  variantId String
+  qty       Int    @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId])
+  @@index([cartId])
+}
+
+// ── Orders ───────────────────────────────────────────────────
+
+/// Order lifecycle. Only the webhook transitions PENDING_PAYMENT → PAID.
+/// COD is created as PENDING_COD; admin marks PAID on collection.
+enum OrderStatus {
+  PENDING_PAYMENT // awaiting online payment webhook
+  PENDING_COD // cash on delivery — unpaid until courier collects
+  PAID
+  FULFILLING
+  SHIPPED
+  DELIVERED
+  CANCELLED // failed/abandoned payment released stock, or admin cancelled
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  WALLET // Apple Pay / Google Pay via Paymob
+  COD
+}
+
+model Order {
+  id              String @id @default(cuid())
+  /// Human-friendly order number shown to customers (e.g. AIY-000123).
+  number          String @unique
+  /// Email + phone + shipping address — PII (the crown jewel #2).
+  email           String
+  phone           String
+  shippingAddress String // JSON string of a validated address object
+  status          OrderStatus @default(PENDING_PAYMENT)
+  paymentMethod   PaymentMethod
+
+  /// Money — integer piasters. Recomputed server-side; client totals ignored.
+  subtotal        Int
+  shipping        Int
+  total           Int
+  currency        String   @default("EGP")
+
+  /// Idempotency: a single checkout attempt maps to exactly one order.
+  /// Retries with the same key return the existing order. UNIQUE enforced.
+  idempotencyKey  String   @unique
+
+  /// Public confirmation handle — unguessable token, NOT sequential id.
+  /// Required to view /orders/[token]; order number alone is not enough (privacy §F).
+  confirmToken    String   @unique
+
+  /// For COD: the amount to prepare for the courier.
+  codDue          Int      @default(0)
+
+  shippingCarrier String?
+  trackingNumber  String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items         OrderItem[]
+  paymentEvents PaymentEvent[]
+
+  @@index([status])
+  @@index([email])
+  @@index([idempotencyKey])
+}
+
+/// Snapshot of the line item at purchase — price & name frozen forever.
+/// Later price/catalog changes never alter past orders.
+model OrderItem {
+  id                 String @id @default(cuid())
+  orderId            String
+  variantId          String
+  nameSnapshot       String // product name at purchase
+  colorwaySnapshot   String
+  sizeSnapshot       String
+  unitAmountSnapshot Int    // integer piasters at purchase
+  qty                Int
+  createdAt          DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+}
+
+// ── Payments ─────────────────────────────────────────────────
+
+/// Audit log of every provider event. eventKey enforces webhook idempotency:
+/// a replayed webhook hits the UNIQUE constraint and is a no-op.
+model PaymentEvent {
+  id          String @id @default(cuid())
+  orderId     String
+  provider    String // "mock" | "paymob"
+  /// Provider's reference for the intent/transaction.
+  providerRef String
+  /// "intent.created" | "payment.succeeded" | "payment.failed" | "refund" …
+  type        String
+  /// Raw payload — secrets masked before persist (privacy §F).
+  rawPayload  String // JSON string
+  /// Idempotency key from the provider event; UNIQUE so replays dedupe.
+  eventKey    String @unique
+  processedAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([providerRef])
+}
