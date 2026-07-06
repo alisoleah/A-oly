@@ -47,3 +47,6 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Private brand/business source docs — never commit
+/Aïoly/
