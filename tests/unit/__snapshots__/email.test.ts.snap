@@ -1,0 +1,19 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`order confirmation email > renders a stable, readable plain-text body 1`] = `
+"Dear Amira Hassan,
+
+Thank you for your order AIY-000042.
+
+Items:
+  • Fluid Shirt × 2 — EGP 44
+
+Total: EGP 66
+
+Payment: Cash on delivery.
+Please prepare EGP 66 in cash for the courier.
+
+View your order: https://aioly.eg/orders/abc123
+
+— aïoly, maison de mode"
+`;
