@@ -80,6 +80,44 @@ The roadmap lives in `implementation-roadmap.md`; this file records the *how*.
 
 ---
 
-## Next: Phase 2 — Cart
+## Phase 2 — Cart ✅ (and: real logo + credential rotation scheduled)
 
-Server-persisted cart (cookie token), add/update/remove server actions, cart drawer, stock-aware quantity caps, free-shipping threshold line. Awaiting go-ahead.
+**Brand/logo**
+- Real aïoly logo asset (`public/brand/logo.jpeg`) integrated via a new `Logo` component. Replaced the text wordmark in the Header (centered) and Footer. Source carries icon + wordmark + "MAISON DE MODE EST 2024" tagline on an ivory field.
+- **Roadmap:** credential rotation (Supabase DB password shared in chat during setup, temporary admin password `aioly-admin-2026`, `SESSION_SECRET`) is now a mandatory Phase 6 deliverable.
+
+**Cart — server-persisted (the build-prompt contract)**
+- `lib/cart/cookies.ts` — unguessable 256-bit cookie token; httpOnly, sameSite=lax, Secure in prod, 90-day expiry. Cookie writes are correctly scoped: only Server Actions / Route Handlers may set cookies (RSCs read-only). This distinction fixed a 500 on `/cart` (Server Components can't call `cookies().set()`).
+- `lib/cart/repository.ts` — the only module reading/writing cart rows. `ensureCartToken` (mutating, actions/handlers) vs `readCartTokenForRSC`/`loadCartForRSC` (read-only, Server Components). **Totals recomputed server-side from DB prices** on every load — subtotal, shipping (waived at threshold), total. Free-shipping progress derived.
+- `lib/cart/actions.ts` — `addToCart` / `updateQty` / `removeFromCart` server actions, all Zod-validated. **Stock caps enforced server-side on every write** (can't exceed `available = stock − reserved`); overflow returns a clean message, never a 500.
+- `/api/cart` Route Handler — single read path for the client; creates the guest cart lazily.
+- `/cart` — full-page server-rendered fallback (works without JS).
+
+**Cart UI**
+- `CartProvider` — client context that mirrors the server source of truth: after every mutation it re-fetches from `/api/cart` so totals are always server-computed (no client-side price math).
+- `CartDrawer` — right-side 420px panel per design-system.md §5: hairline rows, pill quantity stepper, free-shipping progress line (ink-soft), gold checkout CTA. Focus-friendly (Escape to close, scroll-lock).
+- PDP `BuyPanel` wired to `add()` — selects colorway+size, resolves the variant, calls the action, opens the drawer, shows errors inline.
+- Header cart button opens the drawer and shows the count badge in gold.
+
+**Tests (now 67 unit/integration + 14 e2e, all green)**
+- `tests/integration/cart.test.ts` (5) — runs against **live Supabase**: stock-cap on add, allow-exactly-available, reject-over-cap on update, qty-0 removal, server-computed line/subtotal math.
+- e2e `cart.spec.ts` (7) — add→drawer, qty stepper, remove, free-shipping unlock, persistence across navigation, `/cart` page populated + empty state.
+
+**Gate checks — all green**
+- typecheck ✅ · lint ✅ · `npm test` ✅ (67) · `npm run build` ✅ (10 routes) · `npm run test:e2e` ✅ (14)
+
+**Decisions**
+1. **Cookie-write scope split.** `cookies().set()` throws in Server Components. Separated `ensureCartToken` (mutating, for actions/handlers) from `readCartTokenForRSC` (read-only). The `/cart` Server Component uses the read-only path; an empty cart renders without ever creating a row.
+2. **Action tokens injectable for tests.** `addToCart`/`updateQty`/`removeFromCart` accept an optional `{ token }` so integration tests bypass the cookie layer (no request context needed) and run directly against Supabase.
+3. **No client price math.** The drawer/provider never computes totals — it always re-fetches from the server after a mutation. Keeps the "server is source of truth" invariant honest.
+4. **`tests/setup.ts` loads `.env`** so integration tests reach Supabase while unit tests stay pure (they never touch the DB).
+
+**Known gaps**
+- Checkout button currently routes to `/cart` (Phase 3 builds `/checkout`).
+- The logo JPEG has an opaque ivory background; sits cleanly on the scrolled-header/footer ivory fields. A transparent PNG/SVG variant would let it float over the hero — deferred with the lookbook.
+
+---
+
+## Next: Phase 3 — Checkout & COD
+
+Single-page checkout (contact → delivery → payment), Zod-validated Egyptian address + phone, COD path end-to-end (order creation transaction with atomic stock decrement + idempotency key + price snapshot), confirmation page + email. The last-unit concurrency test (exactly one of two simultaneous checkouts succeeds) is the headline invariant. Awaiting go-ahead.

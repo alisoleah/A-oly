@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Cormorant_Garamond } from "next/font/google";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { CartProvider } from "@/components/cart/CartProvider";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 import { messages } from "@/i18n/messages";
 import { env } from "@/lib/env";
 import "./globals.css";
@@ -53,9 +55,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
       <body className="bg-ivory text-ink antialiased">
-        <Header />
-        <main className="min-h-[60vh]">{children}</main>
-        <Footer />
+        <CartProvider>
+          <Header />
+          <main className="min-h-[60vh]">{children}</main>
+          <Footer />
+          <CartDrawer />
+        </CartProvider>
       </body>
     </html>
   );

@@ -15,6 +15,12 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    // Cart actions round-trip to Supabase; allow generous assertion time.
+    actionTimeout: 20_000,
+  },
+  expect: {
+    // Supabase network latency can push add-to-cart beyond the default 5s.
+    timeout: 20_000,
   },
   projects: [
     { name: "desktop-chrome", use: { ...devices["Desktop Chrome"] } },

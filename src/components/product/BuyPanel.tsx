@@ -5,6 +5,7 @@ import { formatPrice, type Piasters } from "@/lib/money";
 import { Button } from "@/components/ui/Button";
 import { SizeSelector } from "@/components/product/SizeSelector";
 import { ColorwaySelector } from "@/components/product/ColorwaySelector";
+import { useCart } from "@/components/cart/CartProvider";
 import { messages } from "@/i18n/messages";
 
 /**
@@ -49,6 +50,9 @@ export function BuyPanel({
   const initialColorway = colorways[0]?.name ?? "";
   const [colorway, setColorway] = useState(initialColorway);
   const [size, setSize] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const { add } = useCart();
 
   // Variants for the currently-selected colorway, one row per size.
   const sizeOptions = useMemo(() => {
@@ -69,16 +73,19 @@ export function BuyPanel({
 
   function handleColorwayChange(cw: string) {
     setColorway(cw);
+    setError(null);
     // A size valid in one colorway exists in all (same size run), but its
     // availability may differ — clear selection so the user re-picks deliberately.
     setSize(null);
   }
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!canAdd) return;
-    // Phase 2: invoke the add-to-cart server action with the resolved variant id.
-    // For Phase 1 we surface the resolved selection so the journey is demonstrable.
-    console.info("add to cart (Phase 2)", { variantId: resolved!.id, name: productName });
+    setAdding(true);
+    setError(null);
+    const result = await add(resolved!.id, 1);
+    setAdding(false);
+    if (!result.ok) setError(result.error);
   }
 
   return (
@@ -106,11 +113,12 @@ export function BuyPanel({
         <Button
           variant="primary"
           onClick={handleAdd}
-          disabled={!canAdd}
+          disabled={!canAdd || adding}
           className="w-full"
         >
-          {canAdd ? messages.product.addToCart : messages.product.selectSize}
+          {adding ? "Adding…" : canAdd ? messages.product.addToCart : messages.product.selectSize}
         </Button>
+        {error && <p className="text-meta text-error mt-2">{error}</p>}
         {!canAdd && size && resolvedAvailable <= 0 && (
           <p className="text-meta text-error mt-2">{messages.product.soldOut}</p>
         )}
