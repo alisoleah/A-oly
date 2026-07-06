@@ -43,15 +43,43 @@ The roadmap lives in `implementation-roadmap.md`; this file records the *how*.
 5. **Prisma `prisma` package.json key removed** (deprecated in Prisma 7) in favour of `prisma.config.ts`. Seed invoked via the `seed` npm script which loads `.env`; `npx prisma db seed` skips env loading under the new config — documented in CLAUDE.md command notes.
 
 **Known gaps (intentional, deferred per roadmap)**
-- Home hero uses a tonal placeholder, not real photography (lookbook TBD).
-- Product grid / PDP not built (Phase 1).
-- Cart, checkout, payments, admin not built (Phases 2–5).
-- No e2e yet (Phase 1 introduces Playwright; `playwright.config.ts` is staged).
+- ~~Home hero uses a tonal placeholder, not real photography~~ (lookbook TBD — placeholder tonal hero retained).
 - Arabic/RTL activation deferred (layout is RTL-ready; messages file is English-only).
 - `prisma.config.ts` triggers a benign "skipping environment variable loading" note under `prisma db seed` — non-blocking; `npm run seed` is the canonical path.
 
 ---
 
-## Next: Phase 1 — Catalog
+## Phase 1 — Catalog ✅
 
-Home product grid, collection pages (`/aether`, `/aethra`), PDP with gallery + sticky buy panel + variant selection, SEO metadata + JSON-LD Product, sitemap. Lighthouse ≥90 perf / ≥95 a11y targets. Awaiting go-ahead.
+**Shipped**
+- **Data-access layer** (`src/lib/catalog.ts`): `listProducts` + `getProductBySlug` returning typed view-models (`ProductCardVM`, `ProductDetailVM`) — components never touch raw Prisma rows. Prices flow out as integer piasters; colorway swatch hex from the brand palette; min-price-per-product derivation.
+- **Availability module** (`src/lib/availability.ts`): `availableStock` (stock − reserved, never negative), `isInStock`, `maxAddableQty` (caps at `MAX_QTY_PER_LINE`), `resolveVariant` (colorway+size → variant, case-insensitive, pure), `sizesByColorway`. This is the safety-critical stock-math brain shared by display + (future) cart.
+- **ProductCard** (`src/components/product/ProductCard.tsx`): 4:5 portrait, CSS crossfade hover-swap to second shot, colorway dots (ink gets an inset ring for visibility on ivory), name + tabular-nums price, sold-out meta. Server component.
+- **Home** rebuilt with real data: hero (placeholder tonal field), collection blocks, featured signature piece (linked, with price), and a full catalog grid pulling all 5 products from the DB.
+- **Collection pages** `/aether` + `/aethra`: filtered grids with per-page metadata, canonical URLs, collection-blurb headers.
+- **PDP** (`/aether/[slug]`, `/aethra/[slug]`): 60/40 gallery + sticky buy panel per design-system.md §4. `Gallery` (full-bleed stacked images + drape-video slot), `ColorwaySelector` (gold-ring selected state), `SizeSelector` (44px cells, OOS = strikethrough + disabled + aria-label), `BuyPanel` (client; holds selection state, derives resolved variant + price + availability, colorway switch clears size). Fabric/care/description rendered. Add-to-cart CTA validates selection (server action lands Phase 2).
+- **SEO**: per-page `metadata` (title/description/OG/Twitter), `sitemap.ts` (home + collections + all products with lastModified), `robots.ts` (admin/api/cart disallowed), **JSON-LD Product** schema with AggregateOffer on every PDP.
+
+**Tests (now 62 unit + 7 e2e, all green)**
+- `availability.test.ts` (14) — stock math, OOS, qty caps, variant resolution, sizes-by-colorway.
+- e2e `browse.spec.ts` (7) — home grid, both collections, home→collection→PDP journey with size selection + colorway switch, OOS-disabled guardrail, sitemap completeness, JSON-LD Product emission.
+
+**Gate checks — all green**
+- typecheck ✅ · lint ✅ · `npm test` ✅ (62) · `npm run build` ✅ (8 routes) · `npm run test:e2e` ✅ (7)
+
+**Decisions**
+1. **`dangerouslyAllowSVG: true`** in `next.config.ts` — our placeholder product imagery is SVG (own brand assets, generated locally). Paired with a strict `contentSecurityPolicy` (`script-src 'none'; sandbox;`) so served SVGs can't execute. Removable once real raster photography ships with the lookbook.
+2. **Stock math isolated in `availability.ts`.** Keeps the "never read raw stock for a sell decision" invariant in one auditable place; both catalog display and the Phase 2 cart go through it.
+3. **PDP buy panel is client, data is server.** The page is a server component fetching the VM; `BuyPanel` receives serialized data and holds only selection state. Keeps the page fast (RSC) while the interaction stays local.
+4. **Collection in URL is cosmetic for routing, canonical for links.** Both `/aether/[slug]` and `/aethra/[slug]` resolve by slug; canonical URLs always match the real collection so there's no duplicate-content SEO issue.
+
+**Known gaps**
+- Add-to-cart is a no-op log in Phase 1 (server action + cart drawer land in Phase 2).
+- No drape video asset yet (Gallery slot is wired; render is conditional on `videoSrc`).
+- Lighthouse full run deferred to Phase 6 hardening (placeholder SVGs are lightweight; expect targets to hold).
+
+---
+
+## Next: Phase 2 — Cart
+
+Server-persisted cart (cookie token), add/update/remove server actions, cart drawer, stock-aware quantity caps, free-shipping threshold line. Awaiting go-ahead.

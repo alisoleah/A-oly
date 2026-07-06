@@ -1,26 +1,33 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { ArrowRightIcon } from "@/components/ui/Icon";
+import { ProductCard } from "@/components/product/ProductCard";
+import { listProducts } from "@/lib/catalog";
 import { messages } from "@/i18n/messages";
+import { formatPrice } from "@/lib/money";
 
 /**
- * Home — Phase 0 shell.
- * Hero, collection blocks (Aether / Aethra), and the featured signature piece.
- * Real product grid + imagery land in Phase 1; this renders the brand structure
- * with the correct tokens, type scale, and motion.
+ * Home — hero, collection blocks, featured grid, and the full catalog.
+ * Server component: pulls shaped view-models from the catalog layer.
  */
-export default function HomePage() {
+export default async function HomePage() {
+  const [featured, all] = await Promise.all([
+    listProducts({ featuredOnly: true }),
+    listProducts(),
+  ]);
+  const signature = featured[0];
+
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="relative flex min-h-[88vh] items-center justify-center overflow-hidden bg-ivory-deep">
-        {/* Hero image stand-in: tonal block evoking natural-light studio */}
         <div
           className="absolute inset-0 bg-gradient-to-b from-ivory via-ivory-deep to-ivory"
           aria-hidden
         />
         <div className="container-brand relative z-10 flex flex-col items-center text-center">
-          <p className="text-meta mb-6 reveal is-visible">{messages.home.heroEyebrow}</p>
+          <p className="text-meta mb-6">{messages.home.heroEyebrow}</p>
           <h1 className="font-display text-[2.25rem] leading-[2.75rem] sm:text-5xl md:text-[3.5rem] md:leading-[4rem] max-w-3xl">
             {messages.home.heroTitle}
           </h1>
@@ -59,27 +66,58 @@ export default function HomePage() {
       </section>
 
       {/* ── Featured piece ───────────────────────────────────── */}
-      <section className="section-y bg-ivory-deep">
-        <div className="container-brand grid grid-cols-1 items-center gap-12 md:grid-cols-2">
-          <div className="aspect-[4/5] overflow-hidden bg-ink/5">
-            {/* Placeholder for the signature pants; real image in Phase 1 */}
-            <div className="flex h-full w-full items-center justify-center bg-ink text-ivory">
-              <span className="font-display text-3xl lowercase">aethra</span>
+      {signature && (
+        <section className="section-y bg-ivory-deep">
+          <div className="container-brand grid grid-cols-1 items-center gap-12 md:grid-cols-2">
+            <Link
+              href={`/aethra/${signature.slug}`}
+              className="group relative aspect-[4/5] overflow-hidden bg-ink"
+            >
+              <Image
+                src={signature.imagePrimary.url}
+                alt={signature.imagePrimary.alt}
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover transition-transform duration-[var(--animate-duration-slow)] ease-[var(--ease-brand)] group-hover:scale-[1.02]"
+                priority
+              />
+            </Link>
+            <div>
+              <p className="text-meta mb-3">{messages.home.featuredEyebrow}</p>
+              <h2 className="font-display text-3xl md:text-4xl mb-4">
+                {signature.name}
+              </h2>
+              <p className="text-price text-ink mb-6">{formatPrice(signature.priceFrom)}</p>
+              <p className="text-ink-soft mb-8 max-w-md">{messages.home.featuredBody}</p>
+              <Button href={`/aethra/${signature.slug}`} variant="primary">
+                {messages.product.addToCart}
+                <ArrowRightIcon className="ms-2 h-4 w-4" />
+              </Button>
             </div>
           </div>
-          <div>
-            <p className="text-meta mb-3">{messages.home.featuredEyebrow}</p>
-            <h2 className="font-display text-3xl md:text-4xl mb-6">
-              {messages.home.featuredTitle}
-            </h2>
-            <p className="text-ink-soft mb-8 max-w-md">{messages.home.featuredBody}</p>
-            <Button href="/aethra/signature-asymmetric-draped-pants" variant="primary">
-              {messages.product.addToCart}
-              <ArrowRightIcon className="ms-2 h-4 w-4" />
-            </Button>
+        </section>
+      )}
+
+      {/* ── The collection ───────────────────────────────────── */}
+      {all.length > 0 && (
+        <section className="section-y">
+          <div className="container-brand">
+            <div className="mb-10 flex items-end justify-between">
+              <div>
+                <p className="text-meta mb-2">{messages.home.collectionsEyebrow}</p>
+                <h2 className="font-display text-3xl md:text-4xl">the collection</h2>
+              </div>
+            </div>
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 md:gap-x-8">
+              {all.map((p) => (
+                <li key={p.id}>
+                  <ProductCard product={p} />
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </>
   );
 }
