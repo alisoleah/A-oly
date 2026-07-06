@@ -34,7 +34,8 @@ Seven phases. Each phase has acceptance criteria and required tests (TESTING_GUI
 
 ## Phase 6 — Polish & launch hardening
 **Build:** Transactional email on real provider (Resend); analytics events (view_item, add_to_cart, begin_checkout, purchase) via a thin wrapper (GA4/Meta pixel-ready); error pages; rate limiting on checkout/webhook/login; security headers (CSP, HSTS, frame-deny); image optimization audit; RUNBOOK.md (deploy, env rotation, refund procedure, webhook replay); run claude-code-security-testing-prompt.md audit and fix all HIGH findings.
-**Accept:** Lighthouse targets hold on prod build; security audit HIGHs = 0; load test — 50 concurrent checkouts, zero oversell, p95 < 800ms on order creation.
+**Credential rotation (pre-launch, mandatory):** rotate the Supabase database password (it was shared in chat during initial setup) — Dashboard → Settings → Database → Reset → re-encode + update `.env` and all Vercel env vars; rotate `SESSION_SECRET` (`openssl rand -hex 32`); replace the temporary admin password (`aioly-admin-2026`, set for early demo) with a strong founder-chosen one via `npm run hash-password` and update `ADMIN_PASSWORD_HASH`. Document the rotation in RUNBOOK.md.
+**Accept:** Lighthouse targets hold on prod build; security audit HIGHs = 0; load test — 50 concurrent checkouts, zero oversell, p95 < 800ms on order creation; all shared/temporary credentials rotated before public launch.
 **Tests:** full regression suite green; header assertions; load script in repo.
 
 ## Later (explicitly out of scope now)

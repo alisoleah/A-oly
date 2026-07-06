@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Wordmark } from "@/components/brand/Wordmark";
+import { Logo } from "@/components/brand/Logo";
 import { BagIcon, SearchIcon, MenuIcon, CloseIcon } from "@/components/ui/Icon";
+import { useCart } from "@/components/cart/CartProvider";
 import { messages } from "@/i18n/messages";
 import { cn } from "@/lib/cn";
 
@@ -19,9 +20,11 @@ const NAV = [
  * Desktop: wordmark left, nav center, search+cart right.
  * Mobile: wordmark center, menu left, cart right; nav collapses into a sheet.
  */
-export function Header({ cartCount = 0 }: { cartCount?: number }) {
+export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { cart, openDrawer } = useCart();
+  const cartCount = cart?.itemCount ?? 0;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -72,9 +75,9 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
           </nav>
         </div>
 
-        {/* Center: wordmark */}
+        {/* Center: logo */}
         <div className="flex flex-1 justify-center">
-          <Wordmark className="text-2xl md:text-3xl" />
+          <Logo height={40} />
         </div>
 
         {/* Right: remaining nav (desktop), search, cart */}
@@ -97,8 +100,9 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
           >
             <SearchIcon />
           </button>
-          <Link
-            href="/cart"
+          <button
+            type="button"
+            onClick={openDrawer}
             className="relative p-2 text-ink hover:text-gold transition-colors duration-[var(--animate-duration-fast)]"
             aria-label={`${messages.nav.cart} (${cartCount})`}
           >
@@ -108,7 +112,7 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
                 {cartCount}
               </span>
             )}
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -123,7 +127,7 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
           />
           <div className="absolute inset-y-0 inline-start-0 w-[min(80vw,320px)] bg-ivory p-6 flex flex-col">
             <div className="flex items-center justify-between mb-8">
-              <Wordmark className="text-xl" />
+              <Logo height={32} />
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}

@@ -6,8 +6,11 @@ export default defineConfig({
     environment: "node",
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
     exclude: ["tests/e2e/**", "node_modules/**"],
+    // Unit tests use a harmless SQLite override (they never hit the DB);
+    // integration tests run against the real Supabase DB (load .env).
     setupFiles: ["./tests/setup.ts"],
-    // Per-worker test DB isolation is set up in integration setup, not here.
+    // Integration tests hit Supabase over the network; allow generous time.
+    testTimeout: 30_000,
   },
   resolve: {
     alias: {
