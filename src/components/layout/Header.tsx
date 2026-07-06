@@ -77,7 +77,8 @@ export function Header() {
 
         {/* Center: logo */}
         <div className="flex flex-1 justify-center">
-          <Logo height={40} />
+          <Logo size="sm" className="md:hidden" />
+          <Logo size="md" className="hidden md:inline-flex" />
         </div>
 
         {/* Right: remaining nav (desktop), search, cart */}
@@ -127,7 +128,7 @@ export function Header() {
           />
           <div className="absolute inset-y-0 inline-start-0 w-[min(80vw,320px)] bg-ivory p-6 flex flex-col">
             <div className="flex items-center justify-between mb-8">
-              <Logo height={32} />
+              <Logo size="sm" />
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}

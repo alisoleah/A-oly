@@ -15,8 +15,8 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-12 md:grid-cols-12">
           {/* Brand + newsletter */}
           <div className="md:col-span-5">
-            <Logo height={48} linked={false} />
-            <p className="mt-3 text-meta">{messages.brand.tagline}</p>
+            <Logo size="lg" linked={false} />
+            <p className="mt-5 text-meta">{messages.brand.tagline}</p>
             <p className="mt-6 max-w-sm text-ink-soft">{messages.footer.newsletterBody}</p>
             <form className="mt-4 flex max-w-sm" aria-label={messages.footer.newsletter}>
               <input
