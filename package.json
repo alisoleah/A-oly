@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "preflight": "tsx scripts/preflight.ts",
+    "deploy-db": "node --env-file=.env --import tsx scripts/deploy-db.ts",
     "seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

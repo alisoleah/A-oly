@@ -7,9 +7,11 @@ generator client {
 }
 
 datasource db {
-  // Dev: SQLite (file). Prod: PostgreSQL (Neon/Supabase) via DATABASE_URL.
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // PostgreSQL — Supabase in all environments (local dev included).
+  // DATABASE_URL = transaction pooler (runtime); directUrl = direct connection (migrations).
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // ── Catalog ──────────────────────────────────────────────────
