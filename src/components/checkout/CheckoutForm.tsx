@@ -46,6 +46,7 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
     postalCode: "",
     notes: "",
   });
+  const [method, setMethod] = useState<"CARD" | "COD">("COD");
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -75,12 +76,18 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
             postalCode: form.postalCode,
             notes: form.notes,
           },
-          payment: { method: "COD" },
+          payment: { method },
           idempotencyKey: idem,
         }),
       });
       const data = await res.json();
       if (res.ok && data.ok) {
+        // Online payment: redirect to the provider's hosted checkout.
+        // COD: go straight to the confirmation page.
+        if (data.paymentRedirectUrl) {
+          window.location.href = data.paymentRedirectUrl;
+          return;
+        }
         router.push(`/orders/${data.order.confirmToken}`);
         return;
       }
@@ -134,16 +141,27 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
 
         {step === "payment" && (
           <div className="mt-6 space-y-4">
-            <fieldset className="border border-line p-4">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input type="radio" name="payment" defaultChecked className="mt-1 accent-ink" />
-                <span>
-                  <span className="block text-sm font-medium">{messages.checkout.cashOnDelivery}</span>
-                  <span className="mt-1 block text-xs text-ink-soft">
-                    {messages.checkout.codNote.replace("{total}", formatPrice(cart.total as Piasters))}
-                  </span>
-                </span>
-              </label>
+            {/* Two equal-weight payment options */}
+            <fieldset className="space-y-3">
+              <legend className="text-meta mb-3 sr-only">Payment method</legend>
+
+              <PaymentOption
+                selected={method === "CARD"}
+                onSelect={() => setMethod("CARD")}
+                title={messages.checkout.payByCard}
+              >
+                <p className="text-xs text-ink-soft">Card, Apple Pay, or Google Pay — wallets show on supported devices.</p>
+              </PaymentOption>
+
+              <PaymentOption
+                selected={method === "COD"}
+                onSelect={() => setMethod("COD")}
+                title={messages.checkout.cashOnDelivery}
+              >
+                <p className="text-xs text-ink-soft">
+                  {messages.checkout.codNote.replace("{total}", formatPrice(cart.total as Piasters))}
+                </p>
+              </PaymentOption>
             </fieldset>
 
             {serverError && <p className="text-sm text-error">{serverError}</p>}
@@ -199,5 +217,38 @@ function StepHeader({ step }: { step: Step }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+/** Radio card for a payment option — equal visual weight (design-system.md §5). */
+function PaymentOption({
+  selected,
+  onSelect,
+  title,
+  children,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label
+      className={`flex cursor-pointer items-start gap-3 border p-4 transition-colors duration-[var(--animate-duration-fast)] ${
+        selected ? "border-ink bg-ivory-deep" : "border-line bg-ivory hover:border-ink-soft"
+      }`}
+    >
+      <input
+        type="radio"
+        name="payment-method"
+        checked={selected}
+        onChange={onSelect}
+        className="mt-1 accent-ink"
+      />
+      <span className="flex-1">
+        <span className="block text-sm font-medium">{title}</span>
+        <span className="mt-1 block">{children}</span>
+      </span>
+    </label>
   );
 }

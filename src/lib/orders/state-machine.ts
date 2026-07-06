@@ -1,4 +1,5 @@
 import { OrderStatus } from "@prisma/client";
+export type { OrderStatus } from "@prisma/client";
 
 /**
  * Order state machine — the single authority on status transitions.

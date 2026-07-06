@@ -76,7 +76,7 @@ export const checkoutSchema = z.object({
     notes: z.string().trim().max(300).optional().or(z.literal("")),
   }),
   payment: z.object({
-    method: z.enum(["COD"]), // card/wallet added in Phase 4
+    method: z.enum(["CARD", "WALLET", "COD"]),
   }),
   /**
    * Idempotency key issued to the checkout page. UNIQUE in the DB — a replay

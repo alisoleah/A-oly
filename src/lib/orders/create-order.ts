@@ -77,7 +77,8 @@ export async function createOrder(
   });
   if (existing) return existing;
 
-  return prisma.$transaction(async (tx) => {
+  return runTransactionWithRetry(() =>
+    prisma.$transaction(async (tx) => {
     // ── 1. Load the cart with current prices + stock (FOR UPDATE semantics) ──
     // Prisma interactive transactions on Postgres use row-level locking via the
     // transaction isolation level, giving us the SELECT...FOR UPDATE behaviour
@@ -176,13 +177,14 @@ export async function createOrder(
               country: SHIPPING_COUNTRY,
               notes: input.delivery.notes ?? "",
             }),
-            paymentMethod: "COD",
-            status: "PENDING_COD", // COD path; Phase 4 uses PENDING_PAYMENT
+            paymentMethod: input.payment.method,
+            // COD: unpaid until courier collects. CARD/WALLET: awaiting the webhook.
+            status: input.payment.method === "COD" ? "PENDING_COD" : "PENDING_PAYMENT",
             subtotal,
             shipping,
             total,
             currency: "EGP",
-            codDue: total,
+            codDue: input.payment.method === "COD" ? total : 0,
             idempotencyKey: input.idempotencyKey,
             confirmToken: generateConfirmToken(),
             items: {
@@ -218,7 +220,28 @@ export async function createOrder(
     await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
 
     return order;
-  });
+  }),
+  );
+}
+
+/**
+ * Run a transaction, retrying once on a transient connection-pool error
+ * (P1000/P2034) — common under Supabase's free-tier pooler under concurrent
+ * load. OutOfStock and other domain errors are NOT retried (they're deterministic).
+ */
+async function runTransactionWithRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    const code = (e as { code?: string }).code;
+    // P1000 = pool timeout, P2034 = transaction conflict/write conflict.
+    if (code === "P1000" || code === "P2034") {
+      // brief backoff then one retry
+      await new Promise((r) => setTimeout(r, 150));
+      return fn();
+    }
+    throw e;
+  }
 }
 
 /**

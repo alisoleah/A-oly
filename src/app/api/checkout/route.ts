@@ -5,6 +5,8 @@ import { createOrder, OutOfStockError, PaymentMethodUnavailableError } from "@/l
 import { ensureCartToken, loadCart } from "@/lib/cart/repository";
 import { sendOrderConfirmation } from "@/lib/email";
 import { env } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
+import { getPaymentProvider } from "@/lib/payments/factory";
 
 /**
  * POST /api/checkout — create an order from the caller's cart.
@@ -35,18 +37,46 @@ export async function POST(request: Request) {
   try {
     const order = await createOrder(cartToken, parsed.data);
 
-    // Fire the confirmation email (non-blocking; a failure must not break checkout).
-    void sendOrderConfirmation({
-      orderNumber: order.number,
-      email: order.email,
-      fullName: parsed.data.contact.fullName,
-      total: order.total,
-      isCod: order.paymentMethod === "COD",
-      confirmUrl: `${env.APP_BASE_URL.replace(/\/$/, "")}/orders/${order.confirmToken}`,
-      items: [], // enriched in Phase 6 with snapshot items; safe empty for now
-    }).catch((e) => console.error("[email] confirmation send failed:", e));
+    // Online payments: reserve the payment intent AFTER the order commits, then
+    // send the customer to the provider's hosted checkout. COD skips this —
+    // the order is already PENDING_COD and the confirmation page is the finish.
+    let paymentRedirectUrl: string | undefined;
+    if (order.paymentMethod !== "COD") {
+      const provider = getPaymentProvider();
+      const intent = await provider.createIntent({
+        orderId: order.id,
+        orderNumber: order.number,
+        amount: order.total,
+        currency: order.currency,
+        email: order.email,
+        firstName: parsed.data.contact.fullName.split(" ")[0] ?? "Customer",
+      });
+      paymentRedirectUrl = intent.redirectUrl;
+      // Persist the provider reference for webhook reconciliation.
+      await prisma.paymentEvent.create({
+        data: {
+          orderId: order.id,
+          provider: provider.name,
+          providerRef: intent.providerRef,
+          type: "intent.created",
+          rawPayload: JSON.stringify({ providerRef: intent.providerRef }),
+          eventKey: `intent_${order.id}`,
+        },
+      });
+    } else {
+      // COD: fire the confirmation email (non-blocking).
+      void sendOrderConfirmation({
+        orderNumber: order.number,
+        email: order.email,
+        fullName: parsed.data.contact.fullName,
+        total: order.total,
+        isCod: true,
+        confirmUrl: `${env.APP_BASE_URL.replace(/\/$/, "")}/orders/${order.confirmToken}`,
+        items: [],
+      }).catch((e) => console.error("[email] confirmation send failed:", e));
+    }
 
-    return NextResponse.json({ ok: true, order }, { status: 201 });
+    return NextResponse.json({ ok: true, order, paymentRedirectUrl }, { status: 201 });
   } catch (e) {
     if (e instanceof OutOfStockError) {
       return NextResponse.json(

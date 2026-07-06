@@ -158,6 +158,44 @@ The roadmap lives in `implementation-roadmap.md`; this file records the *how*.
 
 ---
 
-## Next: Phase 4 — Online payments (Paymob)
+## Phase 4 — Online payments (Paymob) ✅
 
-`PaymentProvider` interface + `MockPaymentProvider` + `PaymobProvider`; payment method selector; redirect/hosted checkout; HMAC-verified webhook (timing-safe) with `PaymentEvent` dedupe; state transition PENDING_PAYMENT→PAID only via webhook; "confirming payment" polling page; reservation TTL sweep. Awaiting go-ahead.
+**The PaymentProvider seam**
+- `lib/payments/provider.ts` — the interface (`createIntent`, `verifyWebhook`, `refund`). Checkout code talks ONLY to this; a second Gulf provider (Phase 7) slots in without touching checkout. Card data never touches our servers (hosted checkout / redirect only) → out of PCI SAQ-D scope.
+- `lib/payments/mock-provider.ts` — the dev/test provider: `createIntent` returns a local `/mock-pay/[ref]` page; its webhook uses the **same HMAC verify path** as the real provider, so the security-critical signature logic is exercised end-to-end in tests.
+- `lib/payments/paymob-provider.ts` — the production provider (Paymob Intention API: card + Apple Pay + Google Pay). HMAC over Paymob's documented field order, timing-safe compared. Slotted behind the factory; not active until `PAYMENT_PROVIDER=paymob` + keys.
+
+**The webhook — the ONLY thing that moves an order to PAID**
+- `app/api/webhooks/[provider]/route.ts`: verify signature (throws → 401, no `PaymentEvent`) → resolve order → **dedupe on `PaymentEvent.eventKey`** (replay is a no-op) → **compare paid amount vs order total** (mismatch → flagged, NOT paid) → transition PENDING_PAYMENT→PAID. Unknown order refs are acked (200) but mutate nothing.
+- `lib/payments/hmac.ts` — `computeHmac` / `safeEqualHex` (`crypto.timingSafeEqual`); never `===` on signatures. The verifier is a pure, unit-tested function.
+- `lib/payments/mask.ts` — strips anything beyond what fulfilment needs before persisting `rawPayload` (privacy §F).
+
+**The online-payment flow**
+- Checkout offers two equal-weight options: "Pay by card / Apple Pay / Google Pay" and "Cash on delivery". CARD/WALLET creates a `PENDING_PAYMENT` order + payment intent → redirects to the provider's hosted checkout (mock page in dev, Paymob in prod).
+- `/checkout/confirming/[token]` — **"Confirming your payment…"** polling page. It NEVER sets status (the invariant); it only reads order status every 1.5s and reflects the webhook outcome — success redirects to the confirmation page, failure shows a gentle message.
+- `/mock-pay/[ref]` — succeed/fail buttons that POST a correctly-signed webhook via `/api/mock-pay/sign` (secret stays server-side).
+- `lib/orders/sweep.ts` + `/api/cron/sweep` — reservation TTL sweep: abandoned `PENDING_PAYMENT` orders older than the TTL are restocked + cancelled. Idempotent.
+
+**Tests (now 149 unit + 16 integration + 19 e2e — all green)**
+- `hmac.test.ts` (13): valid/invalid signature, timing-safety, forged signature, replay handling.
+- `webhook.test.ts` (5): signed success → PAID; replay dedupe; **amount-mismatch rejected**; bad signature → 401 + no audit row; unknown order acked.
+- e2e `payment.spec.ts` (2): full card success path (→ PAID via webhook) + failure path (→ cancelled).
+
+**Gate checks — all green**
+- typecheck ✅ · lint ✅ · `test:unit` ✅ (149) · `test:integration` ✅ (16) · `npm run build` ✅ (16 routes) · `npm run test:e2e` ✅ (19)
+
+**Decisions**
+1. **Built against the MockPaymentProvider**, per CLAUDE.md — the entire card flow is testable end-to-end now; the real Paymob provider is implemented and slotted behind the factory, activating when keys are set. No Paymob sandbox keys were available.
+2. **Mock signs with the same HMAC path as Paymob.** The mock pay page calls `/api/mock-pay/sign` (server-side) so the secret never reaches the browser, and the webhook handler exercises the identical verify+dedupe+amount-check+transition code the production provider will use.
+3. **Connection-pool retry in `createOrder`.** Supabase's free-tier transaction pooler (PgBouncer) intermittently rejects concurrent interactive transactions (P1000/P2034). Added a one-shot retry on those transient codes — correct production behavior (recoverable contention), and it made the 10-way concurrency test reliable. Documented the upgrade path (dedicated pooler / higher plan) for real launch load.
+4. **Integration tests run serial** (`--no-file-parallelism`) — PgBouncer can't sustain multiple interactive-transaction files in parallel. `npm run test:integration` is the canonical command; `npm test` runs unit only (fast, no DB contention).
+
+**Known gaps**
+- Paymob provider untested against a live sandbox (no keys). The manual pre-launch checklist (TESTING_GUIDE.md) covers real-card + wallet-button verification once keys exist.
+- Wallet buttons (Apple Pay/Google Pay) render inside Paymob's hosted checkout, not our selector — device-detection is Paymob's job.
+
+---
+
+## Next: Phase 5 — Admin & operations
+
+`/admin` behind auth middleware (env credential, bcrypt, signed session, login rate-limit); product & variant CRUD with image upload; stock adjustments with audit note; order list + detail + status transitions (mark COD paid, mark shipped w/ tracking → email); CSV export; low-stock indicator. Awaiting go-ahead.

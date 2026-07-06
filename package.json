@@ -10,6 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run --no-file-parallelism tests/integration",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "preflight": "tsx scripts/preflight.ts",
