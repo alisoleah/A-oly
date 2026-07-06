@@ -75,10 +75,9 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Center: logo */}
+        {/* Center: logo — single element, scales with the mark/wordmark sizing */}
         <div className="flex flex-1 justify-center">
-          <Logo size="sm" className="md:hidden" />
-          <Logo size="md" className="hidden md:inline-flex" />
+          <Logo size="md" />
         </div>
 
         {/* Right: remaining nav (desktop), search, cart */}
