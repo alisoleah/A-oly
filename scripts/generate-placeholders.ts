@@ -13,9 +13,9 @@ const OUT = path.join(process.cwd(), "public", "images", "products");
 type Colorway = { name: string; hex: string; ink: string };
 
 const PALETTE: Record<string, Colorway> = {
-  Ivory: { name: "Ivory", hex: "#EDE7DC", ink: "#1A1A1A" },
-  Ink: { name: "Ink", hex: "#1A1A1A", ink: "#F5F1EA" },
-  Sand: { name: "Sand", hex: "#C4A67F", ink: "#1A1A1A" },
+  Ivory: { name: "Ivory", hex: "#EFE9DF", ink: "#1A1A18" },
+  Ink: { name: "Ink", hex: "#1A1A18", ink: "#F7F4EE" },
+  Sand: { name: "Sand", hex: "#CDB088", ink: "#1A1A18" },
 };
 
 type Product = {
@@ -38,7 +38,7 @@ function svg(slug: string, name: string, cw: Colorway, variant: number): string 
   // variant 1 = full garment silhouette; variant 2 = detail/fabric (hover swap)
   return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" role="img" aria-label="${label}">
   <rect width="800" height="1000" fill="${cw.hex}"/>
-  <rect x="0" y="0" width="800" height="1000" fill="#F5F1EA" opacity="${variant === 1 ? 0 : 0.15}"/>
+  <rect x="0" y="0" width="800" height="1000" fill="#F7F4EE" opacity="${variant === 1 ? 0 : 0.15}"/>
   <!-- garment silhouette placeholder -->
   <g fill="none" stroke="${cw.ink}" stroke-width="1.5" opacity="0.55">
     ${variant === 1

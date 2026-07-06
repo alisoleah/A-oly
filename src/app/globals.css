@@ -7,13 +7,15 @@
  * No arbitrary hex values in components.
  */
 @theme {
-  /* ── Palette ─────────────────────────────────────── */
-  --color-ivory: #f5f1ea; /* page background — never pure white */
-  --color-ivory-deep: #ede7dc; /* cards, section alternation */
-  --color-ink: #1a1a1a; /* primary text, primary buttons */
+  /* ── Palette (aligned to the aïoly brand identity, aioly-brand.html) ── */
+  --color-ivory: #f7f4ee; /* page background — never pure white */
+  --color-ivory-deep: #efe9df; /* cards, section alternation (deeper ivory) */
+  --color-ink: #1a1a18; /* charcoal — primary text, primary buttons */
   --color-ink-soft: #4a4a46; /* secondary text */
-  --color-gold: #a9814f; /* THE accent — one use per view max */
-  --color-gold-soft: #c4a67f; /* hover/active of gold */
+  --color-gold: #b8926a; /* bronze — THE accent, one use per view max */
+  --color-gold-soft: #cdb088; /* hover/active of bronze */
+  --color-blush: #e8d5c4; /* brand secondary tone */
+  --color-slate: #7a7a76; /* brand utility tone */
   --color-line: #d9d2c5; /* hairline borders, dividers */
   --color-error: #8c3b2e; /* muted brick */
   --color-success: #5a6b4f; /* muted olive */

@@ -14,13 +14,16 @@ const globalsCss = readFileSync(
 
 describe("design tokens — globals.css", () => {
   it("defines exactly the brand palette with the canonical hex values", () => {
+    // Aligned to the aïoly brand identity (aioly-brand.html).
     const palette: Record<string, string> = {
-      ivory: "#f5f1ea",
-      "ivory-deep": "#ede7dc",
-      ink: "#1a1a1a",
+      ivory: "#f7f4ee",
+      "ivory-deep": "#efe9df",
+      ink: "#1a1a18",
       "ink-soft": "#4a4a46",
-      gold: "#a9814f",
-      "gold-soft": "#c4a67f",
+      gold: "#b8926a",
+      "gold-soft": "#cdb088",
+      blush: "#e8d5c4",
+      slate: "#7a7a76",
       line: "#d9d2c5",
       error: "#8c3b2e",
       success: "#5a6b4f",

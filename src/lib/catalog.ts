@@ -33,14 +33,14 @@ export interface ProductCardVM {
 }
 
 const COLORWAY_HEX: Record<string, string> = {
-  ivory: "#EDE7DC",
-  ink: "#1A1A1A",
-  sand: "#C4A67F",
+  ivory: "#EFE9DF",
+  ink: "#1A1A18",
+  sand: "#CDB088",
 };
 
-/** Swatch hex for a colorway name (design-system.md palette only). */
+/** Swatch hex for a colorway name (brand palette only). */
 export function colorwayHex(name: string): string {
-  return COLORWAY_HEX[name.toLowerCase()] ?? "#EDE7DC";
+  return COLORWAY_HEX[name.toLowerCase()] ?? "#EFE9DF";
 }
 
 /**

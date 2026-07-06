@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" role="img" aria-label="Fluid Shirt — Ink">
-  <rect width="800" height="1000" fill="#1A1A1A"/>
-  <rect x="0" y="0" width="800" height="1000" fill="#F5F1EA" opacity="0"/>
+  <rect width="800" height="1000" fill="#1A1A18"/>
+  <rect x="0" y="0" width="800" height="1000" fill="#F7F4EE" opacity="0"/>
   <!-- garment silhouette placeholder -->
-  <g fill="none" stroke="#F5F1EA" stroke-width="1.5" opacity="0.55">
+  <g fill="none" stroke="#F7F4EE" stroke-width="1.5" opacity="0.55">
     <path d="M300 220 L500 220 L520 800 L280 800 Z"/>
          <line x1="400" y1="220" x2="400" y2="800"/>
   </g>
-  <text x="400" y="900" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#F5F1EA" opacity="0.7" letter-spacing="2">FLUID SHIRT</text>
-  <text x="400" y="940" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#F5F1EA" opacity="0.5" letter-spacing="3">INK · FRONT</text>
+  <text x="400" y="900" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#F7F4EE" opacity="0.7" letter-spacing="2">FLUID SHIRT</text>
+  <text x="400" y="940" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#F7F4EE" opacity="0.5" letter-spacing="3">INK · FRONT</text>
 </svg>

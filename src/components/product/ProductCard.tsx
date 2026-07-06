@@ -59,7 +59,7 @@ export function ProductCard({ product }: { product: ProductCardVM }) {
               className={cn(
                 "block h-3 w-3 rounded-full border border-line",
                 // ink colorway needs a visible ring on ivory
-                cw.hex.toLowerCase() === "#1a1a1a" && "ring-1 ring-inset ring-line",
+                cw.hex.toLowerCase() === "#1a1a18" && "ring-1 ring-inset ring-line",
               )}
               style={{ backgroundColor: cw.hex }}
               aria-label={cw.name}
