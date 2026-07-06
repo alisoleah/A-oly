@@ -137,7 +137,7 @@ export function CartDrawer() {
               <span className="text-sm text-ink-soft">{messages.cart.subtotal}</span>
               <span className="text-price text-lg">{formatPrice(cart.subtotal)}</span>
             </div>
-            <Button href="/cart" variant="gold" className="mt-4 w-full">
+            <Button href="/checkout" variant="gold" className="mt-4 w-full">
               {messages.cart.checkout}
             </Button>
             <button

@@ -113,11 +113,51 @@ The roadmap lives in `implementation-roadmap.md`; this file records the *how*.
 4. **`tests/setup.ts` loads `.env`** so integration tests reach Supabase while unit tests stay pure (they never touch the DB).
 
 **Known gaps**
-- Checkout button currently routes to `/cart` (Phase 3 builds `/checkout`).
-- The logo JPEG has an opaque ivory background; sits cleanly on the scrolled-header/footer ivory fields. A transparent PNG/SVG variant would let it float over the hero — deferred with the lookbook.
+- ~~Checkout button currently routes to `/cart`~~ — Phase 3 builds `/checkout`.
+- The logo is now the transparent vector mark (floats over the hero).
+- Online payment (card/Apple Pay/Google Pay) lands in Phase 4.
 
 ---
 
-## Next: Phase 3 — Checkout & COD
+## Phase 3 — Checkout & COD ✅ (first sellable milestone)
 
-Single-page checkout (contact → delivery → payment), Zod-validated Egyptian address + phone, COD path end-to-end (order creation transaction with atomic stock decrement + idempotency key + price snapshot), confirmation page + email. The last-unit concurrency test (exactly one of two simultaneous checkouts succeeds) is the headline invariant. Awaiting go-ahead.
+**The safety-critical core**
+- **Order state machine** (`lib/orders/state-machine.ts`): adjacency-map of legal transitions; illegal ones throw `IllegalTransitionError` and mutate nothing. Only `online_payment_succeeded` moves PENDING_PAYMENT→PAID (Phase 4 webhook); COD starts at PENDING_COD. Table-driven over every (status, event) pair.
+- **`createOrder` transaction** (`lib/orders/create-order.ts`): all four checkout invariants enforced in one Prisma interactive transaction:
+  1. Totals recomputed SERVER-SIDE from DB prices; the request schema has no `total` field, so a tampered total is structurally impossible to honor.
+  2. **Atomic stock decrement** via a conditional `$executeRaw` (`UPDATE ... WHERE stock - reserved >= qty`); zero rows affected ⇒ someone took the unit ⇒ whole order aborts, nothing decremented. This is the oversell guard — it beats Prisma's Read Committed default, which lost the race under contention.
+  3. Idempotency: same `idempotencyKey` → returns the existing order (no duplicate on retry).
+  4. Price/name snapshots frozen on `OrderItem`; a later price change never alters past orders.
+- **Zod schemas** (`lib/orders/schemas.ts`): Egyptian phone regex, governorate enum, length caps + character allow-lists on every free-text field (these get printed on shipping labels / injected into courier APIs later).
+- **Order identifiers**: `identifiers.ts` (client-safe: `generateIdempotencyKey` via Web Crypto) split from `identifiers.server.ts` (node:crypto `generateConfirmToken`) so the checkout form doesn't pull node:crypto into the browser bundle.
+
+**UI**
+- **Checkout** (`/checkout`): single page, three steps (contact → delivery → payment), server-loaded cart summary, COD radio with the "prepare EGP {total}" note, trust row (secure payment / easy returns / Cairo atelier). Gold "Place order" CTA.
+- **Confirmation** (`/orders/[token]`): token-gated (unguessable 256-bit token, NOT the order number), noindex, COD note + items + status line.
+- **Email** (`lib/email.ts`): provider abstraction (console in dev, Resend in prod), plain-text renderer + snapshot. Fired non-blocking after the order commits.
+
+**Tests (now 136 unit + 11 integration + 17 e2e — all green)**
+- `state-machine.test.ts` (69): every legal + illegal pair + headline invariants.
+- `tests/integration/checkout.test.ts` (4): COD happy path, idempotency, atomicity (no partial decrement), price snapshot survival.
+- `tests/integration/checkout.concurrency.test.ts` (2): **the oversell headline** — stock=1, 2 and 10 simultaneous checkouts, exactly ONE wins, rest get clean `OutOfStockError`, stock ends at 0.
+- e2e `checkout.spec.ts` (3): full COD purchase → confirmation page, empty-cart state, **tampered-total ignored** (POST with `total: 1` → order total = 226000, the server computation).
+
+**Gate checks — all green**
+- typecheck ✅ · lint ✅ · `npm test` ✅ (147) · `npm run build` ✅ (12 routes) · `npm run test:e2e` ✅ (17)
+
+**Decisions**
+1. **Conditional `$executeRaw` for the decrement** instead of Prisma's `decrement` helper. Prisma's Read-Committed default lost the last-unit race (two txns both read stock=1, both decrement). The atomic conditional update is the only correct tool; it's fully parameterized (no interpolation), so the security-review flag for raw SQL doesn't apply.
+2. **Order number from max-suffix, not count.** `count()+1` collides after deletions (test cleanup) — re-issued numbers hit the UNIQUE constraint. Now reads the highest existing `AIY-NNNNNN` suffix + 1, with a P2002-retry loop as a belt-and-braces for true concurrency.
+3. **Single-threaded vitest for integration.** Prisma interactive transactions contend on Supabase's PgBouncer pool; parallel test files deadlocked. Set `pool.threads.singleThread`. Documented as the tradeoff of the free-tier pooler.
+4. **`identifiers.ts` / `identifiers.server.ts` split.** The client checkout form mints its own idempotency key (Web Crypto); the server-only confirm token stays in a node:crypto module. Keeps `node:` out of the browser bundle.
+
+**Known gaps**
+- Online payment path (Phase 4) not built — checkout is COD-only for now.
+- Reservation TTL sweep (release stock of abandoned online payments) lands in Phase 4.
+- Admin order management (mark COD paid) lands in Phase 5.
+
+---
+
+## Next: Phase 4 — Online payments (Paymob)
+
+`PaymentProvider` interface + `MockPaymentProvider` + `PaymobProvider`; payment method selector; redirect/hosted checkout; HMAC-verified webhook (timing-safe) with `PaymentEvent` dedupe; state transition PENDING_PAYMENT→PAID only via webhook; "confirming payment" polling page; reservation TTL sweep. Awaiting go-ahead.
