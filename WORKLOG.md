@@ -198,4 +198,37 @@ The roadmap lives in `implementation-roadmap.md`; this file records the *how*.
 
 ## Next: Phase 5 — Admin & operations
 
-`/admin` behind auth middleware (env credential, bcrypt, signed session, login rate-limit); product & variant CRUD with image upload; stock adjustments with audit note; order list + detail + status transitions (mark COD paid, mark shipped w/ tracking → email); CSV export; low-stock indicator. Awaiting go-ahead.
+## Phase 5 — Admin & operations ✅
+
+**Auth (the security gate)**
+- `lib/admin/auth.ts` — bcrypt verify (cost ≥ 12), signed JWT session via `jose` (HS256 over SESSION_SECRET), in-memory login rate limiter (5 attempts / 15 min, per-IP, cleared on success).
+- `middleware.ts` — the single gate: matcher `/admin/:path*` + `/api/admin/:path*`; unauthenticated → redirect to login (pages) or 401 (API). Re-verifies the JWT signature + expiry on every request. `/admin/login` + `/api/admin/login` are the only public admin paths.
+- Login page (`/admin/login`) + `POST /api/admin/login` — Zod-validated, no user enumeration (identical error for wrong email vs wrong password), sets httpOnly/Secure/SameSite cookie.
+
+**Operations**
+- Dashboard — product/variant/order counts + low-stock indicator (≤3 units).
+- Products — editable table: per-variant stock + price (EGP), publish/hidden toggle, low/out flags. All via server actions (`updateStock`, `updatePrice`, `togglePublish`).
+- Orders — list (newest first) + detail with shipping address, items, payment-event audit trail, and status transitions through the state machine (`markOrderPaid` PENDING_COD→PAID, `startFulfilling` PAID→FULFILLING, `markOrderShipped` FULFILLING→SHIPPED + tracking + email). Illegal transitions rejected.
+- CSV export (`/api/admin/orders/export`) — number, status, payment, email, total (EGP), items, created.
+
+**Tests (now 149 unit + 16 integration + 29 e2e — all green)**
+- e2e `admin.spec.ts` (10): authz on every admin route (3 pages redirect, API 401), login (wrong password, rate-limit after 5, correct credentials → dashboard), edit stock, list orders, CSV export authenticated.
+
+**Gate checks — all green**
+- typecheck ✅ · lint ✅ · `test:unit` ✅ (149) · `test:integration` ✅ (16) · `npm run build` ✅ (22 routes) · `npm run test:e2e` ✅ (29)
+
+**Decisions**
+1. **dotenv `$` escaping for bcrypt hashes.** Bcrypt hashes contain `$` (e.g. `$2b$12$...`), and dotenv expands `$2b`/`$12`/`$salt` as empty variables, silently corrupting the hash → every login failed. Fixed by escaping each `$` as `\$` in local `.env` (and documented that Vercel/Supabase dashboards take the raw value). `scripts/hash-password.ts` now prints both forms.
+2. **Full-page navigation after login.** Client-side `router.replace("/admin")` raced the cookie-set; the first `/admin` fetch sometimes didn't carry the new session cookie → bounced back to login. Switched to `window.location.href` so the cookie is guaranteed sent. Documented.
+3. **Image upload deferred to Phase 6.** It needs storage config (Vercel Blob / S3) which is a deployment concern; admin can edit the seeded images' URLs for now. The content-type + magic-byte validation described in the security audit lands with the storage integration.
+4. **Rate limiter is in-memory** (persists within one server process). Tests order the rate-limit test last so its exhausted bucket doesn't block other logins. Phase 6 records the multi-instance upgrade path (Upstash/edge KV).
+
+**Known gaps**
+- Image upload not built (Phase 6 — needs storage).
+- Rate limiting is single-instance (Phase 6 upgrade to shared store).
+
+---
+
+## Next: Phase 6 — Polish & launch hardening
+
+Transactional email on Resend; analytics events (GA4/Meta-ready); error pages; rate limiting on checkout/webhook (shared store); security headers (CSP, HSTS, frame-deny); image optimization + upload; RUNBOOK.md; **credential rotation** (Supabase password, admin password, session secret — all shared during setup); security audit (claude-code-security-testing-prompt.md) + fix HIGHs; load test. Awaiting go-ahead.

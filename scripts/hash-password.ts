@@ -28,8 +28,11 @@ async function main() {
     process.exit(1);
   }
   const hash = await bcrypt.hash(password, 12);
-  console.log("\nAdd this to your .env as ADMIN_PASSWORD_HASH:\n");
-  console.log(hash);
+  console.log("\nAdd this to your .env as ADMIN_PASSWORD_HASH.\n");
+  console.log("IMPORTANT: escape each $ as \\$ in a local .env (dotenv expands $vars).");
+  console.log("On Vercel/Supabase dashboards, paste the raw hash (no escaping).\n");
+  console.log("raw (for dashboards):", hash);
+  console.log("escaped (for local .env):", hash.replace(/\$/g, "\\$"));
 }
 
 main().catch((e) => {
