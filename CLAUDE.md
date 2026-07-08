@@ -15,7 +15,7 @@ Custom e-commerce storefront for aïoly, a premium women's fashion label (Egypt 
 - Auth: admin-only for now — signed session cookie, credentials from env (`ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, bcrypt).
 - Email: provider abstraction (`lib/email.ts`); Resend in prod, console transport in dev.
 - Tests: Vitest (unit/integration), Playwright (e2e). Testing details in TESTING_GUIDE.md.
-- Approved deps: next, react, prisma/@prisma/client, zod, tailwindcss, bcryptjs, resend, vitest, @playwright/test, iron-session (or jose for cookie signing). Anything else: ask first.
+- Approved deps: next, react, prisma/@prisma/client, zod, tailwindcss, bcryptjs, resend, vitest, @playwright/test, iron-session (or jose for cookie signing), framer-motion (UI motion — approved for the storefront UX overhaul; must always respect `prefers-reduced-motion` via `useReducedMotion()`). Anything else: ask first.
 
 ## Commands
 

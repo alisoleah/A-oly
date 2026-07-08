@@ -3,6 +3,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { ArrowRightIcon } from "@/components/ui/Icon";
 import { ProductCard } from "@/components/product/ProductCard";
+import { Reveal } from "@/components/ui/Reveal";
+import { StaggerGrid, StaggerItem } from "@/components/ui/StaggerGrid";
 import { listProducts } from "@/lib/catalog";
 import { messages } from "@/i18n/messages";
 import { formatPrice } from "@/lib/money";
@@ -42,25 +44,31 @@ export default async function HomePage() {
       {/* ── Collections ──────────────────────────────────────── */}
       <section className="section-y">
         <div className="container-brand">
-          <div className="mb-12 text-center">
-            <p className="text-meta mb-3">{messages.home.collectionsEyebrow}</p>
-            <h2 className="font-display text-3xl md:text-4xl">
-              {messages.home.collectionsTitle}
-            </h2>
-          </div>
+          <Reveal>
+            <div className="mb-12 text-center">
+              <p className="text-meta mb-3">{messages.home.collectionsEyebrow}</p>
+              <h2 className="font-display text-3xl md:text-4xl">
+                {messages.home.collectionsTitle}
+              </h2>
+            </div>
+          </Reveal>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
-            <CollectionBlock
-              href="/aether"
-              name={messages.home.collectionsAether.name}
-              blurb={messages.home.collectionsAether.blurb}
-              tone="light"
-            />
-            <CollectionBlock
-              href="/aethra"
-              name={messages.home.collectionsAethra.name}
-              blurb={messages.home.collectionsAethra.blurb}
-              tone="dark"
-            />
+            <Reveal>
+              <CollectionBlock
+                href="/aether"
+                name={messages.home.collectionsAether.name}
+                blurb={messages.home.collectionsAether.blurb}
+                tone="light"
+              />
+            </Reveal>
+            <Reveal delay={0.1}>
+              <CollectionBlock
+                href="/aethra"
+                name={messages.home.collectionsAethra.name}
+                blurb={messages.home.collectionsAethra.blurb}
+                tone="dark"
+              />
+            </Reveal>
           </div>
         </div>
       </section>
@@ -68,33 +76,35 @@ export default async function HomePage() {
       {/* ── Featured piece ───────────────────────────────────── */}
       {signature && (
         <section className="section-y bg-ivory-deep">
-          <div className="container-brand grid grid-cols-1 items-center gap-12 md:grid-cols-2">
-            <Link
-              href={`/aethra/${signature.slug}`}
-              className="group relative aspect-[4/5] overflow-hidden bg-ink"
-            >
-              <Image
-                src={signature.imagePrimary.url}
-                alt={signature.imagePrimary.alt}
-                fill
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover transition-transform duration-[var(--animate-duration-slow)] ease-[var(--ease-brand)] group-hover:scale-[1.02]"
-                priority
-              />
-            </Link>
-            <div>
-              <p className="text-meta mb-3">{messages.home.featuredEyebrow}</p>
-              <h2 className="font-display text-3xl md:text-4xl mb-4">
-                {signature.name}
-              </h2>
-              <p className="text-price text-ink mb-6">{formatPrice(signature.priceFrom)}</p>
-              <p className="text-ink-soft mb-8 max-w-md">{messages.home.featuredBody}</p>
-              <Button href={`/aethra/${signature.slug}`} variant="primary">
-                {messages.product.addToCart}
-                <ArrowRightIcon className="ms-2 h-4 w-4" />
-              </Button>
+          <Reveal>
+            <div className="container-brand grid grid-cols-1 items-center gap-12 md:grid-cols-2">
+              <Link
+                href={`/aethra/${signature.slug}`}
+                className="group relative aspect-[4/5] overflow-hidden bg-ink"
+              >
+                <Image
+                  src={signature.imagePrimary.url}
+                  alt={signature.imagePrimary.alt}
+                  fill
+                  sizes="(min-width: 768px) 50vw, 100vw"
+                  className="object-cover transition-transform duration-[var(--animate-duration-slow)] ease-[var(--ease-brand)] group-hover:scale-[1.02]"
+                  priority
+                />
+              </Link>
+              <div>
+                <p className="text-meta mb-3">{messages.home.featuredEyebrow}</p>
+                <h2 className="font-display text-3xl md:text-4xl mb-4">
+                  {signature.name}
+                </h2>
+                <p className="text-price text-ink mb-6">{formatPrice(signature.priceFrom)}</p>
+                <p className="text-ink-soft mb-8 max-w-md">{messages.home.featuredBody}</p>
+                <Button href={`/aethra/${signature.slug}`} variant="primary">
+                  {messages.product.addToCart}
+                  <ArrowRightIcon className="ms-2 h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          </Reveal>
         </section>
       )}
 
@@ -102,19 +112,21 @@ export default async function HomePage() {
       {all.length > 0 && (
         <section className="section-y">
           <div className="container-brand">
-            <div className="mb-10 flex items-end justify-between">
-              <div>
-                <p className="text-meta mb-2">{messages.home.collectionsEyebrow}</p>
-                <h2 className="font-display text-3xl md:text-4xl">the collection</h2>
+            <Reveal>
+              <div className="mb-10 flex items-end justify-between">
+                <div>
+                  <p className="text-meta mb-2">{messages.home.collectionsEyebrow}</p>
+                  <h2 className="font-display text-3xl md:text-4xl">the collection</h2>
+                </div>
               </div>
-            </div>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 md:gap-x-8">
+            </Reveal>
+            <StaggerGrid className="grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 md:gap-x-8">
               {all.map((p) => (
-                <li key={p.id}>
+                <StaggerItem key={p.id}>
                   <ProductCard product={p} />
-                </li>
+                </StaggerItem>
               ))}
-            </ul>
+            </StaggerGrid>
           </div>
         </section>
       )}

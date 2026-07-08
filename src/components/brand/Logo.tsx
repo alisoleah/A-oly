@@ -26,8 +26,8 @@ type LogoProps = {
 
 const SIZES = {
   // mark px / wordmark rem
-  sm: { mark: 28, word: 1.5 },
-  md: { mark: 36, word: 1.9 },
+  sm: { mark: 32, word: 1.7 },
+  md: { mark: 46, word: 2.3 },
   lg: { mark: 52, word: 2.6 },
 } as const;
 

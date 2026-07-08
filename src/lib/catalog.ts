@@ -26,10 +26,16 @@ export interface ProductCardVM {
   imageHover: { url: string; alt: string };
   /** Distinct colorways available, with a swatch hex for the dot. */
   colorways: { name: string; hex: string }[];
+  /** Distinct sizes available across all variants (for the size filter + quick view). */
+  sizes: Size[];
+  /** Variant summary so QuickView can resolve a sellable variant without a second fetch. */
+  variants: { id: string; colorway: string; size: Size; available: number; price: Piasters }[];
   /** Lowest current price across the product's variants (piasters). */
   priceFrom: Piasters;
   /** True if every variant is out of stock. */
   soldOut: boolean;
+  /** Whether the product is flagged featured (for the sort default order). */
+  featured: boolean;
 }
 
 const COLORWAY_HEX: Record<string, string> = {
@@ -112,8 +118,17 @@ function toCardVM(p: ProductWithRelations): ProductCardVM {
       alt: imgs[1]?.alt ?? `${p.name}`,
     },
     colorways: colorways.map((c) => ({ name: c.name, hex: colorwayHex(c.name) })),
+    sizes: distinctSizes(p.variants),
+    variants: p.variants.map((v) => ({
+      id: v.id,
+      colorway: v.colorway,
+      size: v.size,
+      available: availableStock(v.stock, v.reserved),
+      price: (v.prices[0]?.unitAmount ?? 0) as Piasters,
+    })),
     priceFrom,
     soldOut: p.variants.every((v) => v.stock - v.reserved <= 0),
+    featured: p.featured,
   };
 }
 
@@ -170,6 +185,15 @@ function distinctColorways(variants: { colorway: string }[]): { name: string }[]
     }
   }
   return out;
+}
+
+/** Canonical size order for filters and selectors (XS → XL). */
+export const SIZE_ORDER: Size[] = ["XS", "S", "M", "L", "XL"];
+
+/** Distinct sizes available, ordered XS → XL regardless of insertion order. */
+function distinctSizes(variants: { size: Size }[]): Size[] {
+  const present = new Set(variants.map((v) => v.size));
+  return SIZE_ORDER.filter((s) => present.has(s));
 }
 
 // ── Types (loosened for include shape) ───────────────────────
