@@ -75,6 +75,8 @@ The lowercase display treatment echoes the wordmark. Never set the wordmark in a
 - **Toast**: bottom center, ink bg, ivory text, 3s.
 - **Badge**: uppercase 11px — only "new" and "low stock" (never fake urgency).
 - **Payment method selector** (checkout): radio cards — "Pay by card / Apple Pay / Google Pay" and "Cash on delivery" — equal visual weight; wallet buttons render inside the online option only when device-supported.
+- **QuickView** (grid): modal overlay on card hover — primary image, name, price, colorway + size selectors, add-to-cart, "view full details" link. Scrim/Escape to close. Data from the card view-model (no extra fetch).
+- **FilterSidebar** (listing): left rail on /aether and /aethra — size pills, colour swatches, sort dropdown, clear-all, result count. Static aside on desktop; bottom sheet on mobile.
 
 ## 6. Checkout experience
 
@@ -87,6 +89,7 @@ The lowercase display treatment echoes the wordmark. Never set the wordmark in a
 ## 7. Motion & interaction
 
 - One principle: things settle, they don't bounce. `--ease`, opacity+translateY(8px) reveals on scroll (once, no re-trigger), image crossfades `--dur-base`.
+- Implementation: framer-motion (`Reveal`, `StaggerGrid`, `QuickView`, `ScrollToTop`). Every motion component MUST call `useReducedMotion()` and render static when the user opts out — no exceptions.
 - No parallax, no autoplaying carousels with controls hidden, no marquee.
 - Respect `prefers-reduced-motion`: disable all non-essential transitions.
 

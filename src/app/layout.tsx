@@ -4,6 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { QuickViewProvider } from "@/components/product/QuickViewProvider";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { messages } from "@/i18n/messages";
 import { env } from "@/lib/env";
 import "./globals.css";
@@ -56,10 +58,13 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
       <body className="bg-ivory text-ink antialiased">
         <CartProvider>
-          <Header />
-          <main className="min-h-[60vh]">{children}</main>
-          <Footer />
-          <CartDrawer />
+          <QuickViewProvider>
+            <Header />
+            <main className="min-h-[60vh]">{children}</main>
+            <Footer />
+            <CartDrawer />
+            <ScrollToTop />
+          </QuickViewProvider>
         </CartProvider>
       </body>
     </html>

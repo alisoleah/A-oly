@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ProductCard } from "@/components/product/ProductCard";
+import { ProductGrid } from "@/components/catalog/ProductGrid";
+import { Reveal } from "@/components/ui/Reveal";
 import { listProducts } from "@/lib/catalog";
 import { messages } from "@/i18n/messages";
 
@@ -18,23 +19,15 @@ export default async function AethraPage() {
 
   return (
     <div className="container-brand section-y">
-      <header className="mb-12 max-w-2xl">
-        <p className="text-meta mb-3">{messages.home.collectionsEyebrow}</p>
-        <h1 className="font-display text-4xl md:text-5xl">aethra</h1>
-        <p className="mt-4 text-ink-soft">{messages.home.collectionsAethra.blurb}</p>
-      </header>
+      <Reveal>
+        <header className="mb-12 max-w-2xl">
+          <p className="text-meta mb-3">{messages.home.collectionsEyebrow}</p>
+          <h1 className="font-display text-4xl md:text-5xl">aethra</h1>
+          <p className="mt-4 text-ink-soft">{messages.home.collectionsAethra.blurb}</p>
+        </header>
+      </Reveal>
 
-      {products.length === 0 ? (
-        <p className="text-ink-soft py-16 text-center">{messages.product.soldOut}</p>
-      ) : (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 md:gap-x-8">
-          {products.map((p) => (
-            <li key={p.id}>
-              <ProductCard product={p} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <ProductGrid products={products} />
     </div>
   );
 }

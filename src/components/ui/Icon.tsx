@@ -116,3 +116,21 @@ export function ArrowRightIcon(props: IconProps) {
     </Svg>
   );
 }
+
+/** Arrow up — scroll-to-top button. */
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 19V5M6 11l6-6 6 6" />
+    </Svg>
+  );
+}
+
+/** Filter funnel — filter sidebar toggle. */
+export function FilterIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 5h18l-7 8v6l-4-2v-4L3 5Z" />
+    </Svg>
+  );
+}
