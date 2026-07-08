@@ -25,6 +25,13 @@ describe("computeHmac", () => {
     expect(a).toMatch(/^[0-9a-f]{64}$/); // sha256 hex
   });
 
+  it("sha512 produces a 128-char hex digest (Paymob's algorithm)", () => {
+    const digest = computeHmac(SECRET, MESSAGE, "sha512");
+    expect(digest).toMatch(/^[0-9a-f]{128}$/);
+    // Different from sha256 for the same input — algorithms are not interchangeable.
+    expect(digest).not.toBe(computeHmac(SECRET, MESSAGE, "sha256"));
+  });
+
   it("changes entirely with a different message (avalanche)", () => {
     expect(computeHmac(SECRET, MESSAGE)).not.toBe(
       computeHmac(SECRET, MESSAGE + "x"),
@@ -42,6 +49,16 @@ describe("verifyHmac", () => {
   it("accepts a correctly-signed message", () => {
     const sig = computeHmac(SECRET, MESSAGE);
     expect(verifyHmac(SECRET, MESSAGE, sig)).toBe(true);
+  });
+
+  it("accepts a correctly-signed sha512 message (Paymob algorithm)", () => {
+    const sig = computeHmac(SECRET, MESSAGE, "sha512");
+    expect(verifyHmac(SECRET, MESSAGE, sig, "sha512")).toBe(true);
+  });
+
+  it("rejects a sha256 signature when verified as sha512 (algorithm mismatch)", () => {
+    const sig = computeHmac(SECRET, MESSAGE, "sha256");
+    expect(verifyHmac(SECRET, MESSAGE, sig, "sha512")).toBe(false);
   });
 
   it("rejects a tampered message (signature no longer matches)", () => {

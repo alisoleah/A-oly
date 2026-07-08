@@ -39,8 +39,9 @@ export class MockPaymentProvider implements PaymentProvider {
   async verifyWebhook(req: Request): Promise<VerifiedEvent> {
     const body = (await req.text()) as string;
     const signature = req.headers.get("x-mock-signature") ?? "";
-    // The mock signs the raw body; this exercises the same timing-safe path.
-    if (!verifyHmac(MOCK_SECRET, body, signature)) {
+    // The mock signs the raw body with SHA-256; this exercises the same
+    // timing-safe compare path the real (SHA-512) provider uses.
+    if (!verifyHmac(MOCK_SECRET, body, signature, "sha256")) {
       throw new Error("Mock webhook signature verification failed.");
     }
 

@@ -8,11 +8,23 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  *    signatures — that leaks length/prefix via timing.
  *  - The secret comes ONLY from env, never from the request.
  *  - Throws on mismatch; the caller treats any throw as "reject".
+ *
+ * Algorithm is parameterized because providers differ:
+ *  - Mock provider (dev/test): HMAC-SHA256 over the raw body.
+ *  - Paymob (production): HMAC-SHA512 over an ordered concatenation of fields.
+ *
+ * Never default a provider's algorithm — pass it explicitly so a mismatch is
+ * a compile-time-visible fact at the call site, not a silent fallback.
  */
+export type HmacAlgorithm = "sha256" | "sha512";
 
-/** Compute an HMAC-SHA256 hex digest over a message with a secret. */
-export function computeHmac(secret: string, message: string): string {
-  return createHmac("sha256", secret).update(message).digest("hex");
+/** Compute an HMAC hex digest over a message with a secret. */
+export function computeHmac(
+  secret: string,
+  message: string,
+  algorithm: HmacAlgorithm = "sha256",
+): string {
+  return createHmac(algorithm, secret).update(message).digest("hex");
 }
 
 /**
@@ -36,7 +48,12 @@ export function safeEqualHex(a: string, b: string): boolean {
  * Pure + testable (the webhook handler builds the message per the provider's
  * documented field order, then calls this).
  */
-export function verifyHmac(secret: string, message: string, receivedSignature: string): boolean {
-  const expected = computeHmac(secret, message);
+export function verifyHmac(
+  secret: string,
+  message: string,
+  receivedSignature: string,
+  algorithm: HmacAlgorithm = "sha256",
+): boolean {
+  const expected = computeHmac(secret, message, algorithm);
   return safeEqualHex(expected, receivedSignature);
 }

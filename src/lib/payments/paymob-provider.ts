@@ -8,6 +8,77 @@ import type {
 } from "@/lib/payments/provider";
 
 /**
+ * Canonical Paymob transaction-callback HMAC field order.
+ *
+ * Verified against Paymob's official "HMAC Transaction Callback" doc (updated
+ * 2026-06). The signed string is the concatenation of these values IN THIS
+ * EXACT ORDER, taken from the nested `obj` of a TRANSACTION callback:
+ *
+ *   { type: "TRANSACTION", obj: { amount_cents, created_at, currency,
+ *     error_occured, has_parent_transaction, id, integration_id, is_3d_secure,
+ *     is_auth, is_capture, is_refunded, is_standalone_payment, is_voided,
+ *     order: { id, ... }, owner, pending, source_data: { pan, sub_type, type },
+ *     success } }
+ *
+ * DO NOT REORDER. A different order = a different digest = every webhook
+ * rejected. If Paymob ever revises this list, re-verify against the docs and
+ * the sandbox test vector in tests/unit/paymob-hmac.test.ts before changing.
+ */
+export const HMAC_FIELDS = [
+  "amount_cents",
+  "created_at",
+  "currency",
+  "error_occured",
+  "has_parent_transaction",
+  "id",
+  "integration_id",
+  "is_3d_secure",
+  "is_auth",
+  "is_capture",
+  "is_refunded",
+  "is_standalone_payment",
+  "is_voided",
+  "order",      // nested → unwrapped to its `id`
+  "owner",
+  "pending",
+  "source_data_pan",      // nested source_data.pan
+  "source_data_sub_type", // nested source_data.sub_type
+  "source_data_type",     // nested source_data.type
+  "success",
+] as const;
+
+/**
+ * Flatten a Paymob `obj` into the key set the canonical HMAC order expects.
+ *
+ * Paymob nests `order` and `source_data`; the signed string concatenates their
+ * inner values, so we lift:
+ *   - order.id             → "order"
+ *   - source_data.pan      → "source_data_pan"
+ *   - source_data.sub_type → "source_data_sub_type"
+ *   - source_data.type     → "source_data_type"
+ * Missing keys are omitted from the returned object; the HMAC builder defaults
+ * them to "" via `?? ""`, which matches Paymob's own behavior for absent fields.
+ *
+ * Exported so the HMAC test vector (tests/unit/paymob-hmac.test.ts) can assert
+ * the exact concatenated message.
+ */
+export function flattenPaymobObj(obj: Record<string, unknown>): Record<string, unknown> {
+  const order = obj.order;
+  const sourceData = obj.source_data as Record<string, unknown> | undefined;
+
+  return {
+    ...obj,
+    order:
+      order !== null && typeof order === "object"
+        ? (order as Record<string, unknown>).id
+        : order,
+    source_data_pan: sourceData?.pan,
+    source_data_sub_type: sourceData?.sub_type,
+    source_data_type: sourceData?.type,
+  };
+}
+
+/**
  * PaymobProvider — the production provider using Paymob's Intention API
  * (unified checkout: card + Apple Pay + Google Pay).
  *
@@ -92,46 +163,51 @@ export class PaymobProvider implements PaymentProvider {
   }
 
   /**
-   * Verify a Paymob webhook. The HMAC is computed over the concatenation of the
-   * documented fields in Paymob's published order. We rebuild that string here
-   * and compare timing-safe; any mismatch throws.
+   * Verify a Paymob transaction webhook.
    *
-   * The exact field order MUST match Paymob's docs — pin it and re-verify before
-   * go-live against a live sandbox callback.
+   * Per Paymob's docs (verified 2026-06):
+   *  - Algorithm: HMAC-**SHA512** (NOT sha256).
+   *  - The HMAC is delivered as a **query parameter** `?hmac=...`, not a header.
+   *  - The signed data is the nested `obj` of `{ type: "TRANSACTION", obj: {...} }`.
+   *  - The signed string is the concatenation of a canonical field list (above),
+   *    with nested `order` unwrapped to its `id` and `source_data.*` flattened.
+   *
+   * We rebuild that exact string, recompute the digest with our secret, and
+   * compare timing-safe. Any mismatch throws — the caller rejects the request.
    */
   async verifyWebhook(req: Request): Promise<VerifiedEvent> {
-    const body = (await req.text()) as string;
-    const obj = JSON.parse(body) as Record<string, unknown>;
-    const hmacHeader = req.headers.get("x-paymob-hmac") ?? "";
+    // Paymob delivers the HMAC as a query param; the body is JSON.
+    const url = new URL(req.url);
+    const receivedHmac = url.searchParams.get("hmac") ?? "";
+    if (!receivedHmac) {
+      throw new Error("Paymob webhook missing ?hmac= query parameter.");
+    }
 
-    // Paymob's HMAC is computed over a specific ordered concatenation of fields.
-    // Reconstruct from the documented key list; missing fields default to "".
-    const HMAC_FIELDS = [
-      "order", "amount_cents", "created_at", "currency", "error_occured",
-      "has_parent_transaction", "id", "integration_id", "is_3d_secure",
-      "is_auth", "is_capture", "is_refunded", "is_standalone_payment",
-      "is_voided", "owner", "pending", "source_data_pan", "source_data_sub_type",
-      "source_data_type", "success",
-    ];
-    const message = HMAC_FIELDS.map((k) => String(obj[k] ?? "")).join("");
-    if (!verifyHmac(env.PAYMOB_HMAC_SECRET!, message, hmacHeader)) {
+    const body = (await req.text()) as string;
+    const parsed = JSON.parse(body) as { type?: string; obj?: Record<string, unknown> };
+
+    // TRANSACTION callbacks nest the payload under `obj`. GET callbacks (rare,
+    // redirect-style) arrive flat — handle both defensively.
+    const obj = parsed.obj ?? (parsed as Record<string, unknown>);
+    const flat = flattenPaymobObj(obj);
+
+    const message = HMAC_FIELDS.map((k) => String(flat[k] ?? "")).join("");
+    if (!verifyHmac(env.PAYMOB_HMAC_SECRET!, message, receivedHmac, "sha512")) {
       throw new Error("Paymob webhook HMAC verification failed.");
     }
 
     // Map to our canonical VerifiedEvent.
-    const success = obj.success === true;
-    const orderObj = obj.order as { id?: string; merchant_order_id?: string; extras?: { order_number?: string } } | string;
-    const orderRef =
-      (typeof orderObj === "object" ? orderObj?.extras?.order_number : undefined) ??
-      (typeof orderObj === "object" ? String(orderObj?.id ?? "") : String(orderObj ?? ""));
+    const success = flat.success === true || flat.success === "true";
+    const orderId = flat.order ?? "";
+    const orderRef = String(orderId); // we pass our order_number as Paymob order id/extras
 
     return {
       orderRef,
-      eventKey: `paymob_${obj.id}`, // dedupe on the Paymob transaction id
+      eventKey: `paymob_${flat.id}`, // dedupe on the Paymob transaction id
       type: success ? "payment.succeeded" : "payment.failed",
-      amount: Number(obj.amount_cents ?? 0),
-      currency: String(obj.currency ?? "EGP"),
-      providerRef: String(obj.id ?? ""),
+      amount: Number(flat.amount_cents ?? 0),
+      currency: String(flat.currency ?? "EGP"),
+      providerRef: String(flat.id ?? ""),
     };
   }
 

@@ -12,6 +12,7 @@ import { MOCK_HMAC_SECRET } from "@/lib/payments/mock-provider";
  */
 export async function POST(request: Request) {
   const body = await request.text();
-  const signature = computeHmac(MOCK_HMAC_SECRET, body);
+  // Mock uses SHA-256 over the raw body (dev/test only — see hmac.ts).
+  const signature = computeHmac(MOCK_HMAC_SECRET, body, "sha256");
   return NextResponse.json({ signature });
 }

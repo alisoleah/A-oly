@@ -41,10 +41,14 @@ tests/
 
 ### 5. Webhook security
 - Valid HMAC (test vector built from Paymob's documented field order + test secret) → accepted.
+  - **Algorithm: HMAC-SHA512** (Paymob contract — NOT sha256). The mock provider uses sha256 for dev/test only.
+  - **HMAC arrives as a `?hmac=` query parameter**, not a header.
+  - Transaction callbacks nest the payload under `obj`; `order` unwraps to its `id`, `source_data.*` is flattened. Canonical field order is pinned in `tests/unit/paymob-hmac.test.ts`.
 - Invalid signature → 401, no PaymentEvent row.
 - Valid signature, amount ≠ order total → rejected + flagged (alert log), order NOT paid.
 - Valid signature, unknown order ref → 200 (ack) + logged, nothing mutated.
 - Comparison is timing-safe (assert `timingSafeEqual` used — unit test the verifier directly).
+- Algorithm-mismatch rejection: a sha256 signature must NOT verify under sha512.
 
 ## e2e journeys (Playwright, mock provider)
 
