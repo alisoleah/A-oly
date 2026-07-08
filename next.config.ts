@@ -22,7 +22,11 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self'",
+      // framer-motion needs 'unsafe-eval' for its animation style engine, and
+      // Next.js injects inline runtime scripts. Tighten to nonce-based CSP
+      // (see SECURITY_AUDIT.md) before production launch. For dev/staging this
+      // keeps hydration + animations functional without per-request nonces.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'", // Tailwind injects styles inline; tighten post-launch
       "img-src 'self' data: blob:",
       "font-src 'self' data:",

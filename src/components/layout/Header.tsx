@@ -50,7 +50,7 @@ export function Header() {
           : "bg-transparent border-b border-transparent",
       )}
     >
-      <div className="container-brand flex h-16 items-center justify-between md:h-20">
+      <div className="container-brand flex h-20 items-center justify-between md:h-24">
         {/* Left (desktop): nav links. Left (mobile): menu button */}
         <div className="flex flex-1 items-center">
           <button
@@ -75,8 +75,9 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Center: logo — single element, scales with the mark/wordmark sizing */}
-        <div className="flex flex-1 justify-center">
+        {/* Center: logo — single element, scales with the mark/wordmark sizing.
+            pt-2 nudges it down so it reads as sitting lower in the taller bar. */}
+        <div className="flex flex-1 justify-center pt-2">
           <Logo size="md" />
         </div>
 

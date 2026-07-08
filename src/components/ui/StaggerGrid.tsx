@@ -47,13 +47,17 @@ export function StaggerGrid({
   if (reduce) {
     return <ul className={cn("grid", className)}>{children}</ul>;
   }
+  // NOTE: we use `animate` (not `whileInView`) here deliberately. The grid is
+  // usually already in/near the viewport on page load, and `whileInView` +
+  // `once: true` can miss elements that are already past the threshold on the
+  // first paint — leaving cards stuck at opacity:0. `animate` runs immediately
+  // on mount, so the stagger plays once and cards are always visible.
   return (
     <motion.ul
       className={cn("grid", className)}
       variants={container}
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.1 }}
+      animate="visible"
     >
       {children}
     </motion.ul>
