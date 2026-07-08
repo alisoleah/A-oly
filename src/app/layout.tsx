@@ -6,6 +6,7 @@ import { CartProvider } from "@/components/cart/CartProvider";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { QuickViewProvider } from "@/components/product/QuickViewProvider";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
 import { messages } from "@/i18n/messages";
 import { env } from "@/lib/env";
 import "./globals.css";
@@ -57,6 +58,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
       <body className="bg-ivory text-ink antialiased">
+        <AnalyticsScripts />
         <CartProvider>
           <QuickViewProvider>
             <Header />

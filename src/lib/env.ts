@@ -62,6 +62,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().email().optional(),
 
+  /** Analytics — GA4 measurement ID (G-XXXX) and/or Meta Pixel ID. Optional. */
+  NEXT_PUBLIC_GA4_ID: z.string().optional(),
+  NEXT_PUBLIC_META_PIXEL_ID: z.string().optional(),
+
   /** Storefront base URL for OG images, return URLs, email links. */
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
 });

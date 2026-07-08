@@ -23,12 +23,14 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       // framer-motion needs 'unsafe-eval' for its animation style engine, and
-      // Next.js injects inline runtime scripts. Tighten to nonce-based CSP
-      // (see SECURITY_AUDIT.md) before production launch. For dev/staging this
-      // keeps hydration + animations functional without per-request nonces.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // Next.js injects inline runtime scripts. GA4 + Meta Pixel (loaded only
+      // when NEXT_PUBLIC_GA4_ID / NEXT_PUBLIC_META_PIXEL_ID are set) need their
+      // domains. Tighten to nonce-based CSP (see SECURITY_AUDIT.md) before
+      // production launch; for dev/staging this keeps everything functional.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net",
       "style-src 'self' 'unsafe-inline'", // Tailwind injects styles inline; tighten post-launch
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://www.facebook.com", // Meta Pixel img beacon
+      "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com",
       "font-src 'self' data:",
       "connect-src 'self'",
       "frame-ancestors 'none'",

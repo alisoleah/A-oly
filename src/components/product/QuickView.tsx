@@ -7,6 +7,7 @@ import Image from "next/image";
 import type { ProductCardVM } from "@/lib/catalog";
 import type { Size } from "@/lib/catalog";
 import { useCart } from "@/components/cart/CartProvider";
+import { analytics } from "@/lib/analytics";
 import { CloseIcon, ArrowRightIcon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/money";
@@ -89,7 +90,16 @@ export function QuickView({
       return;
     }
     setError(null);
-    await add(selectedVariant.id, 1);
+    const result = await add(selectedVariant.id, 1);
+    if (result.ok) {
+      analytics.addToCart({
+        id: product.name,
+        name: product.name,
+        variant: `${colorway} · ${size}`,
+        price: selectedVariant.price / 100, // piasters → major EGP
+        quantity: 1,
+      });
+    }
     onClose();
   }
 

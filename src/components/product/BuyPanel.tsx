@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatPrice, type Piasters } from "@/lib/money";
 import { Button } from "@/components/ui/Button";
 import { SizeSelector } from "@/components/product/SizeSelector";
 import { ColorwaySelector } from "@/components/product/ColorwaySelector";
 import { useCart } from "@/components/cart/CartProvider";
+import { analytics } from "@/lib/analytics";
 import { messages } from "@/i18n/messages";
 
 /**
@@ -71,6 +72,18 @@ export function BuyPanel({
   const resolvedAvailable = resolved?.available ?? 0;
   const canAdd = resolved !== null && resolvedAvailable > 0;
 
+  // Fire view_item once on PDP mount (analytics: GA4/Meta-ready dataLayer push).
+  useEffect(() => {
+    analytics.viewItem({
+      id: productName,
+      name: productName,
+      variant: initialColorway,
+      price: resolvedPrice / 100, // piasters → major EGP
+      quantity: 1,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleColorwayChange(cw: string) {
     setColorway(cw);
     setError(null);
@@ -85,7 +98,17 @@ export function BuyPanel({
     setError(null);
     const result = await add(resolved!.id, 1);
     setAdding(false);
-    if (!result.ok) setError(result.error);
+    if (!result.ok) {
+      setError(result.error);
+    } else {
+      analytics.addToCart({
+        id: productName,
+        name: productName,
+        variant: `${colorway} · ${size}`,
+        price: resolved!.price / 100, // piasters → major EGP
+        quantity: 1,
+      });
+    }
   }
 
   return (

@@ -232,3 +232,66 @@ The roadmap lives in `implementation-roadmap.md`; this file records the *how*.
 ## Next: Phase 6 — Polish & launch hardening
 
 Transactional email on Resend; analytics events (GA4/Meta-ready); error pages; rate limiting on checkout/webhook (shared store); security headers (CSP, HSTS, frame-deny); image optimization + upload; RUNBOOK.md; **credential rotation** (Supabase password, admin password, session secret — all shared during setup); security audit (claude-code-security-testing-prompt.md) + fix HIGHs; load test. Awaiting go-ahead.
+
+---
+
+## Phase 6 (cont.) — Paymob HMAC correctness ✅
+
+Verified the `PaymobProvider.verifyWebhook` against Paymob's official docs (updated 2026-06) and found four bugs that would have rejected every production webhook:
+1. Algorithm was `sha256` — Paymob uses **HMAC-SHA512**.
+2. HMAC read from an `x-paymob-hmac` header — Paymob delivers it as a **`?hmac=` query parameter**.
+3. Payload read from top-level body — TRANSACTION callbacks nest it under **`obj`**.
+4. Field order was a hardcoded guess — must be **Paymob's canonical order** (`order`→`id`, `source_data.*` flattened).
+
+Parameterized `hmac.ts` (`algorithm` arg) so the mock provider keeps SHA-256 over raw body. Added `flattenPaymobObj` + exported `HMAC_FIELDS` (canonical order) in `paymob-provider.ts`. Locked the contract with `tests/unit/paymob-hmac.test.ts` (11 known-answer tests). Wrote `docs/PAYMOB_SETUP.md` (sandbox-key steps, test cards, go-live checklist).
+
+All gates green: typecheck · lint · 163 unit · 16 integration (mock webhook e2e intact) · production build.
+
+---
+
+## Storefront UX overhaul ✅
+
+Inspired by ZEE's product-display patterns, adapted to aïoly's brand restraint (no marquee, no autoplay carousels — design-system.md §7 ban kept). Branch `feat/storefront-ux`, merged to `main`.
+
+**Animations (framer-motion, approved dep; reduced-motion aware via `useReducedMotion`)**
+- `Reveal` — scroll-in opacity + translateY(8px) entrances for home/listing sections.
+- `StaggerGrid` / `StaggerItem` — cascading card entrances on product grids.
+- `ScrollToTop` — floating ink button, fades in past 600px scroll.
+- Hero/section entrances on home; listing headers reveal.
+
+**Product display**
+- `ProductCard` → client component with a hover-reveal "Quick view" bar that slides up over the image (pure CSS group-hover transition).
+- `QuickView` modal — `AnimatePresence` panel with image, price, colorway + size selectors, add-to-cart (wired to `useCart`), "view full details" link. No extra fetch (data from extended `ProductCardVM`).
+- `QuickViewProvider` mounted at root so any card triggers it via context.
+
+**Categorization (no schema migration — 2 collections + client-side filters)**
+- `FilterSidebar` — left rail: size pills (XS–XL), colour swatches, clear-all, result count. Bottom sheet on mobile.
+- `ProductGrid` — client wrapper holding filter + sort state over already-fetched products.
+- `SortSelect` — Featured / Price asc / Price desc / Name A→Z.
+
+**Data layer (non-breaking)**
+- `ProductCardVM` gains `sizes[]`, `variants[]` summary, `featured`. `catalog.ts` exports `SIZE_ORDER`.
+
+**Bug fixes (post-review)**
+- Root cause of "products invisible + menu dead": strict CSP (`script-src 'self'`) blocked framer-motion's inline eval + Next.js runtime → aborted React hydration. Loosened CSP (`+ 'unsafe-inline' 'unsafe-eval'`) for dev/staging; nonce-based tightening is a pre-launch TODO.
+- `StaggerGrid` `whileInView` → `animate`: the `whileInView` + `once:true` combo can miss elements already in viewport on first paint, leaving cards stuck at opacity:0.
+- Logo bigger (mark 36→46px, word 1.9→2.3rem), header taller (h-16/h-20 → h-20/h-24), nudged down with `pt-2`.
+- Verified via Playwright: 0 hydration errors, products visible, menu opens, logo positioned.
+
+All gates green; deployed to Vercel via `main` push.
+
+---
+
+## Phase 6 — remaining gaps (audit 2026-07)
+
+| Item | Status | Note |
+|------|--------|------|
+| Transactional email (Resend) | ✅ DONE | plain-text body only — HTML template pending |
+| Analytics events wrapper | ⚠️ PARTIAL | `lib/analytics.ts` exists but never called; no dataLayer/GA4 script in layout |
+| Error pages | ✅ DONE | |
+| Rate limiting | ⚠️ PARTIAL | in-memory only; needs Upstash/KV for multi-instance prod |
+| Security headers | ⚠️ PARTIAL | CSP loosened for dev (unsafe-inline/unsafe-eval); nonce-based tighten pending |
+| Image optimization | ✅ DONE | next/image everywhere, explicit sizes |
+| RUNBOOK.md | ✅ DONE | |
+| Credential rotation setup | ✅ DONE | manual task documented; not executed |
+| Load test script | ❌ MISSING | |

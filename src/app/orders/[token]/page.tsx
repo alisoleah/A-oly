@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/money";
 import { messages } from "@/i18n/messages";
 import { Button } from "@/components/ui/Button";
+import { PurchaseTracker } from "@/components/analytics/PurchaseTracker";
 
 export const metadata: Metadata = {
   title: "Order confirmed",
@@ -91,6 +92,19 @@ export default async function OrderConfirmationPage({
           Status: <span className="tabular-nums">{order.status}</span>
         </p>
       </div>
+
+      {/* Fire the purchase analytics event once (GA4/Meta-ready dataLayer push). */}
+      <PurchaseTracker
+        transactionId={order.number}
+        value={order.total / 100}
+        items={order.items.map((item) => ({
+          id: item.nameSnapshot,
+          name: item.nameSnapshot,
+          variant: `${item.colorwaySnapshot} · ${item.sizeSnapshot}`,
+          price: item.unitAmountSnapshot / 100,
+          quantity: item.qty,
+        }))}
+      />
     </div>
   );
 }

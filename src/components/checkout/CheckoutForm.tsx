@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input, Select } from "@/components/ui/Input";
@@ -9,6 +9,7 @@ import { formatPrice, type Piasters } from "@/lib/money";
 import { messages } from "@/i18n/messages";
 import { generateIdempotencyKey } from "@/lib/orders/identifiers";
 import { ShieldIcon, ReturnIcon, PinIcon } from "@/components/ui/Icon";
+import { analytics } from "@/lib/analytics";
 import type { CartVM } from "@/lib/cart/repository";
 import { GOVERNORATES } from "@/lib/orders/schemas";
 
@@ -33,6 +34,22 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
 
   const idem = useMemo(() => generateIdempotencyKey(), []);
   const empty = cart.lines.length === 0;
+
+  // Fire begin_checkout once when the checkout loads (GA4/Meta-ready).
+  useEffect(() => {
+    if (empty) return;
+    analytics.beginCheckout(
+      cart.lines.map((l) => ({
+        id: l.name,
+        name: l.name,
+        variant: `${l.colorway} · ${l.size}`,
+        price: l.unitAmount / 100, // piasters → major EGP
+        quantity: l.qty,
+      })),
+      cart.total / 100,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Form state
   const [form, setForm] = useState({
