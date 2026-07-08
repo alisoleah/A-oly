@@ -4,6 +4,7 @@ import { getPaymentProvider } from "@/lib/payments/factory";
 import { transitionOrderStatus, IllegalTransitionError } from "@/lib/orders/transitions";
 import { assertPiasters } from "@/lib/money";
 import { maskPayload } from "@/lib/payments/mask";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 /**
  * The webhook endpoint — the ONLY thing that transitions an order to PAID.
@@ -30,6 +31,16 @@ export async function POST(
   if (provider.name !== providerName) {
     // Route/provider mismatch — don't process under the wrong verifier.
     return NextResponse.json({ error: "provider mismatch" }, { status: 404 });
+  }
+
+  // Rate limit webhook intake: 60/min per IP (providers retry, so generous).
+  const ip = clientIp(request);
+  const limit = rateLimit("webhook", ip, 60, 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "rate limited" },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
   }
 
   // 1. Verify signature (throws on mismatch).

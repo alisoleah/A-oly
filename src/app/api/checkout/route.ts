@@ -7,6 +7,7 @@ import { sendOrderConfirmation } from "@/lib/email";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payments/factory";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/checkout — create an order from the caller's cart.
@@ -29,6 +30,16 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Please check the form for errors.", fields: z.flattenError(parsed.error).fieldErrors },
       { status: 400 },
+    );
+  }
+
+  // Rate limit checkout creation: 20 attempts / 10 min per IP (soft flood guard).
+  const ip = clientIp(request);
+  const limit = rateLimit("checkout", ip, 20, 10 * 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please try again shortly." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
     );
   }
 
