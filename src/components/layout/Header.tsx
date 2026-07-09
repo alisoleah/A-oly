@@ -81,10 +81,12 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Center: logo — single element, scales with the mark/wordmark sizing.
+        {/* Center: logo. Two instances: sm (mobile) + md (desktop), swapped via
+            responsive hidden/block so the size actually scales with the screen.
             pt-2 nudges it down so it reads as sitting lower in the taller bar. */}
         <div className="flex flex-1 justify-center pt-2">
-          <Logo size="md" />
+          <span className="md:hidden"><Logo size="sm" /></span>
+          <span className="hidden md:block"><Logo size="md" /></span>
         </div>
 
         {/* Right: remaining nav (desktop), locale switcher, search, cart */}

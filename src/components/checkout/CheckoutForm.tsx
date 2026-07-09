@@ -176,18 +176,18 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
             <fieldset>
               <legend className="text-meta mb-3 sr-only">{messages.checkout.paymentMethod}</legend>
               <label
-                className={`flex cursor-pointer items-start gap-3 border p-4 transition-colors ${method === "CARD" ? "border-ink" : "border-line"}`}
+                className={`flex cursor-pointer items-start gap-3 border p-3 transition-colors md:p-4 ${method === "CARD" ? "border-ink" : "border-line"}`}
               >
-                <input type="radio" name="method" value="CARD" checked={method === "CARD"} onChange={() => setMethod("CARD")} className="mt-1" />
-                <span>
-                  <span className="block font-medium">{messages.checkout.payByCard}</span>
+                <input type="radio" name="method" value="CARD" checked={method === "CARD"} onChange={() => setMethod("CARD")} className="mt-1 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{messages.checkout.payByCard}</span>
                   <span className="block text-xs text-ink-soft">{messages.checkout.cardDescription}</span>
                 </span>
               </label>
               <label
-                className={`mt-3 flex cursor-pointer items-start gap-3 border p-4 transition-colors ${method === "COD" ? "border-ink" : "border-line"}`}
+                className={`mt-3 flex cursor-pointer items-start gap-3 border p-3 transition-colors md:p-4 ${method === "COD" ? "border-ink" : "border-line"}`}
               >
-                <input type="radio" name="method" value="COD" checked={method === "COD"} onChange={() => setMethod("COD")} className="mt-1" />
+                <input type="radio" name="method" value="COD" checked={method === "COD"} onChange={() => setMethod("COD")} className="mt-1 shrink-0" />
                 <span>
                   <span className="block font-medium">{messages.checkout.cashOnDelivery}</span>
                   {method === "COD" && cart.total && (

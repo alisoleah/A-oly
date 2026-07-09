@@ -67,7 +67,7 @@ export function Footer({ messages, locale }: { messages: Messages; locale: Local
 
         {/* Bottom row: payment marks + copyright */}
         <div className="mt-16 flex flex-col items-start justify-between gap-6 border-t border-line pt-8 md:flex-row md:items-center">
-          <div className="flex items-center gap-3" aria-label={messages.footer.paymentMethods}>
+          <div className="flex flex-wrap items-center gap-2" aria-label={messages.footer.paymentMethods}>
             <PaymentMark label="Visa" />
             <PaymentMark label="Mastercard" />
             <PaymentMark label="Apple Pay" />

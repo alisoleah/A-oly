@@ -74,9 +74,9 @@ export default async function RootLayout({
     <html
       lang={langTag(locale)}
       dir={direction}
-      className={`${inter.variable} ${cormorant.variable} ${arabic.variable}`}
+      className={`${inter.variable} ${cormorant.variable} ${arabic.variable} overflow-x-hidden`}
     >
-      <body className="bg-ivory text-ink antialiased">
+      <body className="bg-ivory text-ink antialiased overflow-x-hidden">
         {children}
       </body>
     </html>
