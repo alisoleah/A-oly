@@ -8,7 +8,11 @@ export default async function AdminOrdersPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-3xl lowercase">orders</h1>
-        <a href="/api/admin/orders/export" className="text-meta text-ink-soft hover:text-ink">
+        {/* Native <a> is intentional: this is a file-download endpoint, not a
+            page navigation. <Link> would attempt client-side routing on a
+            blob/CSV response, which is wrong. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a href="/api/admin/orders/export" download className="text-meta text-ink-soft hover:text-ink">
           Export CSV
         </a>
       </div>
