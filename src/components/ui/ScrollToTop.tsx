@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ArrowUpIcon } from "@/components/ui/Icon";
-import { messages } from "@/i18n/messages";
+import { useMessages } from "@/i18n/MessagesProvider";
 
 /**
  * ScrollToTop — floating ink button, bottom-right, fades in after the user
@@ -14,6 +14,7 @@ import { messages } from "@/i18n/messages";
  */
 export function ScrollToTop() {
   const reduce = useReducedMotion();
+  const messages = useMessages();
   const [show, setShow] = useState(false);
 
   useEffect(() => {

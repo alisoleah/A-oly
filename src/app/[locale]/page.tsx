@@ -6,14 +6,21 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { StaggerGrid, StaggerItem } from "@/components/ui/StaggerGrid";
 import { listProducts } from "@/lib/catalog";
-import { messages } from "@/i18n/messages";
+import { getMessages } from "@/i18n/get-messages";
+import type { Locale } from "@/i18n/config";
 import { formatPrice } from "@/lib/money";
 
 /**
  * Home — hero, collection blocks, featured grid, and the full catalog.
  * Server component: pulls shaped view-models from the catalog layer.
  */
-export default async function HomePage() {
+export default async function HomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const messages = getMessages(locale as Locale);
   const [featured, all] = await Promise.all([
     listProducts({ featuredOnly: true }),
     listProducts(),
@@ -34,9 +41,9 @@ export default async function HomePage() {
             {messages.home.heroTitle}
           </h1>
           <p className="mt-6 max-w-xl text-ink-soft">{messages.home.heroBody}</p>
-          <Button href="/aethra" variant="ghost" className="mt-10">
+          <Button href={`/${locale}/aethra`} variant="ghost" className="mt-10">
             {messages.home.heroCta}
-            <ArrowRightIcon className="ms-2 h-4 w-4" />
+            <ArrowRightIcon className="ms-2 h-4 w-4 rtl:rotate-180" />
           </Button>
         </div>
       </section>
@@ -55,7 +62,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
             <Reveal>
               <CollectionBlock
-                href="/aether"
+                href={`/${locale}/aether`}
                 name={messages.home.collectionsAether.name}
                 blurb={messages.home.collectionsAether.blurb}
                 tone="light"
@@ -63,7 +70,7 @@ export default async function HomePage() {
             </Reveal>
             <Reveal delay={0.1}>
               <CollectionBlock
-                href="/aethra"
+                href={`/${locale}/aethra`}
                 name={messages.home.collectionsAethra.name}
                 blurb={messages.home.collectionsAethra.blurb}
                 tone="dark"
@@ -79,7 +86,7 @@ export default async function HomePage() {
           <Reveal>
             <div className="container-brand grid grid-cols-1 items-center gap-12 md:grid-cols-2">
               <Link
-                href={`/aethra/${signature.slug}`}
+                href={`/${locale}/aethra/${signature.slug}`}
                 className="group relative aspect-[4/5] overflow-hidden bg-ink"
               >
                 <Image
@@ -98,9 +105,9 @@ export default async function HomePage() {
                 </h2>
                 <p className="text-price text-ink mb-6">{formatPrice(signature.priceFrom)}</p>
                 <p className="text-ink-soft mb-8 max-w-md">{messages.home.featuredBody}</p>
-                <Button href={`/aethra/${signature.slug}`} variant="primary">
+                <Button href={`/${locale}/aethra/${signature.slug}`} variant="primary">
                   {messages.product.addToCart}
-                  <ArrowRightIcon className="ms-2 h-4 w-4" />
+                  <ArrowRightIcon className="ms-2 h-4 w-4 rtl:rotate-180" />
                 </Button>
               </div>
             </div>
@@ -116,7 +123,7 @@ export default async function HomePage() {
               <div className="mb-10 flex items-end justify-between">
                 <div>
                   <p className="text-meta mb-2">{messages.home.collectionsEyebrow}</p>
-                  <h2 className="font-display text-3xl md:text-4xl">the collection</h2>
+                  <h2 className="font-display text-3xl md:text-4xl">{messages.home.theCollection}</h2>
                 </div>
               </div>
             </Reveal>
@@ -160,7 +167,7 @@ function CollectionBlock({
           </p>
         </div>
         <ArrowRightIcon
-          className={`h-6 w-6 transition-transform duration-[var(--animate-duration-base)] group-hover:translate-x-1 ${
+          className={`h-6 w-6 transition-transform duration-[var(--animate-duration-base)] group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1 ${
             tone === "dark" ? "text-gold-soft" : "text-gold"
           }`}
         />

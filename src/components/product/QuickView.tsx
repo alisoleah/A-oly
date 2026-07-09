@@ -8,10 +8,10 @@ import type { ProductCardVM } from "@/lib/catalog";
 import type { Size } from "@/lib/catalog";
 import { useCart } from "@/components/cart/CartProvider";
 import { analytics } from "@/lib/analytics";
+import { useMessages, useLocale } from "@/i18n/MessagesProvider";
 import { CloseIcon, ArrowRightIcon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/money";
-import { messages } from "@/i18n/messages";
 
 /**
  * QuickView — a focused modal that lets a shopper preview a piece and add it to
@@ -34,6 +34,8 @@ export function QuickView({
 }) {
   const reduce = useReducedMotion();
   const { add } = useCart();
+  const messages = useMessages();
+  const locale = useLocale();
 
   const [colorway, setColorway] = useState<string>("");
   const [size, setSize] = useState<Size | null>(null);
@@ -64,8 +66,8 @@ export function QuickView({
 
   const href = product
     ? product.collection === "AETHRA"
-      ? `/aethra/${product.slug}`
-      : `/aether/${product.slug}`
+      ? `/${locale}/aethra/${product.slug}`
+      : `/${locale}/aether/${product.slug}`
     : "#";
 
   // Sizes available in the selected colorway.
@@ -250,7 +252,7 @@ export function QuickView({
                   className="group flex items-center justify-center gap-2 text-meta text-ink hover:text-gold transition-colors duration-[var(--animate-duration-fast)]"
                 >
                   {messages.catalog.viewDetails}
-                  <ArrowRightIcon className="h-4 w-4 transition-transform duration-[var(--animate-duration-fast)] group-hover:translate-x-1" />
+                  <ArrowRightIcon className="h-4 w-4 transition-transform duration-[var(--animate-duration-fast)] group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
                 </Link>
               </div>
             </div>

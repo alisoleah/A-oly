@@ -38,6 +38,19 @@
   --spacing: 4px;
 }
 
+/*
+ * RTL font swap — when dir="rtl", swap the body + display fonts to IBM Plex
+ * Sans Arabic (Cormorant + Inter have no Arabic glyphs). The display font for
+ * Arabic is the same Plex Arabic (no Arabic serif in the brand stack) at 500
+ * weight, which reads as a refined sans display. Latin (en) keeps Cormorant.
+ */
+@layer base {
+  [dir="rtl"] {
+    --font-display: var(--font-arabic), "IBM Plex Sans Arabic", sans-serif;
+    --font-body: var(--font-arabic), "IBM Plex Sans Arabic", -apple-system, sans-serif;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
  * Base layer — element defaults that every screen inherits.
  * ───────────────────────────────────────────────────────────── */

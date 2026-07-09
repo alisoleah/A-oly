@@ -7,7 +7,7 @@ import { SizeSelector } from "@/components/product/SizeSelector";
 import { ColorwaySelector } from "@/components/product/ColorwaySelector";
 import { useCart } from "@/components/cart/CartProvider";
 import { analytics } from "@/lib/analytics";
-import { messages } from "@/i18n/messages";
+import { useMessages } from "@/i18n/MessagesProvider";
 
 /**
  * BuyPanel — the sticky right column of the PDP (design-system.md §4, §5).
@@ -54,6 +54,7 @@ export function BuyPanel({
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const { add } = useCart();
+  const messages = useMessages();
 
   // Variants for the currently-selected colorway, one row per size.
   const sizeOptions = useMemo(() => {

@@ -1,19 +1,14 @@
 "use client";
 
-import { messages } from "@/i18n/messages";
+import { useMessages } from "@/i18n/MessagesProvider";
 
 /**
- * The sort options for a product listing. Shared between ProductGrid state and
- * the SortSelect dropdown so labels stay in sync.
+ * The sort keys for a product listing. Labels are locale-resolved inside the
+ * component (useMessages) so they switch with the URL locale.
  */
 export type SortKey = "featured" | "priceAsc" | "priceDesc" | "nameAsc";
 
-export const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: "featured", label: messages.catalog.sortBy.featured },
-  { value: "priceAsc", label: messages.catalog.sortBy.priceAsc },
-  { value: "priceDesc", label: messages.catalog.sortBy.priceDesc },
-  { value: "nameAsc", label: messages.catalog.sortBy.nameAsc },
-];
+export const SORT_KEYS: SortKey[] = ["featured", "priceAsc", "priceDesc", "nameAsc"];
 
 /**
  * SortSelect — a styled native <select>. Native controls give us keyboard +
@@ -26,6 +21,15 @@ export function SortSelect({
   value: SortKey;
   onChange: (key: SortKey) => void;
 }) {
+  const messages = useMessages();
+
+  const labels: Record<SortKey, string> = {
+    featured: messages.catalog.sortBy.featured,
+    priceAsc: messages.catalog.sortBy.priceAsc,
+    priceDesc: messages.catalog.sortBy.priceDesc,
+    nameAsc: messages.catalog.sortBy.nameAsc,
+  };
+
   return (
     <label className="inline-flex items-center gap-2">
       <span className="text-meta">{messages.catalog.sort}</span>
@@ -35,9 +39,9 @@ export function SortSelect({
         className="h-11 border border-line bg-ivory px-3 text-sm text-ink transition-colors duration-[var(--animate-duration-fast)] hover:border-ink-soft focus:border-ink focus:outline-none"
         aria-label={messages.catalog.sort}
       >
-        {SORT_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
+        {SORT_KEYS.map((key) => (
+          <option key={key} value={key}>
+            {labels[key]}
           </option>
         ))}
       </select>

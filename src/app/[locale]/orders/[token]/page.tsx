@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/money";
-import { messages } from "@/i18n/messages";
+import { getMessages } from "@/i18n/get-messages";
+import type { Locale } from "@/i18n/config";
 import { Button } from "@/components/ui/Button";
 import { PurchaseTracker } from "@/components/analytics/PurchaseTracker";
 
@@ -12,21 +13,19 @@ export const metadata: Metadata = {
 };
 
 /**
- * /orders/[token] — order confirmation page.
+ * /[locale]/orders/[token] — order confirmation page.
  *
  * Privacy §F: requires the UNGUESSABLE confirmToken (32 bytes), NOT just the
  * order number. The token is emailed + shown once after checkout; guessing it
  * is infeasible. Robots noindex keeps it out of search.
- *
- * COD orders show the "prepare EGP {total} for the courier" note. Phase 4 adds
- * the "confirming your payment…" polling state for online payments.
  */
 export default async function OrderConfirmationPage({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: Promise<{ locale: string; token: string }>;
 }) {
-  const { token } = await params;
+  const { locale, token } = await params;
+  const messages = getMessages(locale as Locale);
 
   const order = await prisma.order.findUnique({
     where: { confirmToken: token },
@@ -80,16 +79,16 @@ export default async function OrderConfirmationPage({
         </div>
 
         <div className="mt-4 flex justify-between border-t border-line pt-4 text-base">
-          <span>Total</span>
+          <span>{messages.order.total}</span>
           <span className="text-price">{formatPrice(order.total)}</span>
         </div>
 
         <div className="mt-10">
-          <Button href="/aethra" variant="ghost">{messages.cart.continueShopping}</Button>
+          <Button href={`/${locale}/aethra`} variant="ghost">{messages.cart.continueShopping}</Button>
         </div>
 
         <p className="mt-6 text-xs text-ink-soft">
-          Status: <span className="tabular-nums">{order.status}</span>
+          {messages.order.status}: <span className="tabular-nums">{order.status}</span>
         </p>
       </div>
 

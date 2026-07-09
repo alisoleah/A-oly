@@ -10,7 +10,7 @@ import {
  * Resolves by slug; notFound() (404) if missing or unpublished.
  */
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale: string }> }) {
   const { slug } = await params;
   const product = await loadProductDetail(slug);
   return buildProductMetadata(product);
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function AetherProductPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; locale: string }>;
 }) {
   const { slug } = await params;
   const product = await loadProductDetail(slug);

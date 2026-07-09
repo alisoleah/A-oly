@@ -1,30 +1,36 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { BagIcon, SearchIcon, MenuIcon, CloseIcon } from "@/components/ui/Icon";
 import { useCart } from "@/components/cart/CartProvider";
-import { messages } from "@/i18n/messages";
+import { useMessages, useLocale } from "@/i18n/MessagesProvider";
 import { cn } from "@/lib/cn";
-
-const NAV = [
-  { href: "/aether", label: messages.nav.aether },
-  { href: "/aethra", label: messages.nav.aethra },
-  { href: "/about", label: messages.nav.about },
-  { href: "/journal", label: messages.nav.journal },
-];
 
 /**
  * Header — transparent over the hero, solid --ivory after scrolling (design-system.md §3).
- * Desktop: wordmark left, nav center, search+cart right.
+ * Desktop: wordmark left, nav center, search+cart+locale right.
  * Mobile: wordmark center, menu left, cart right; nav collapses into a sheet.
+ *
+ * All copy comes from useMessages() (locale-aware). Nav links are locale-prefixed.
+ * The locale switcher (EN | ع) rewrites the URL prefix.
  */
 export function Header() {
+  const messages = useMessages();
+  const locale = useLocale();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { cart, openDrawer } = useCart();
   const cartCount = cart?.itemCount ?? 0;
+
+  const nav = [
+    { href: `/${locale}/aether`, label: messages.nav.aether },
+    { href: `/${locale}/aethra`, label: messages.nav.aethra },
+    { href: `/${locale}/about`, label: messages.nav.about },
+    { href: `/${locale}/journal`, label: messages.nav.journal },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -62,8 +68,8 @@ export function Header() {
           >
             <MenuIcon />
           </button>
-          <nav className="hidden md:flex items-center gap-8" aria-label="Primary">
-            {NAV.slice(0, 2).map((item) => (
+          <nav className="hidden md:flex items-center gap-8" aria-label={messages.nav.primaryNav}>
+            {nav.slice(0, 2).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -81,10 +87,10 @@ export function Header() {
           <Logo size="md" />
         </div>
 
-        {/* Right: remaining nav (desktop), search, cart */}
+        {/* Right: remaining nav (desktop), locale switcher, search, cart */}
         <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
-          <nav className="hidden md:flex items-center gap-8" aria-label="Secondary">
-            {NAV.slice(2).map((item) => (
+          <nav className="hidden md:flex items-center gap-8" aria-label={messages.nav.secondaryNav}>
+            {nav.slice(2).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -94,6 +100,7 @@ export function Header() {
               </Link>
             ))}
           </nav>
+          <LocaleSwitcher />
           <button
             type="button"
             className="p-2 text-ink hover:text-gold transition-colors duration-[var(--animate-duration-fast)]"
@@ -124,7 +131,7 @@ export function Header() {
             type="button"
             className="absolute inset-0 bg-ink/20"
             onClick={() => setMenuOpen(false)}
-            aria-label="Close menu"
+            aria-label={messages.nav.closeMenu}
           />
           <div className="absolute inset-y-0 inline-start-0 w-[min(80vw,320px)] bg-ivory p-6 flex flex-col">
             <div className="flex items-center justify-between mb-8">
@@ -132,14 +139,14 @@ export function Header() {
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
+                aria-label={messages.nav.closeMenu}
                 className="p-2"
               >
                 <CloseIcon />
               </button>
             </div>
-            <nav className="flex flex-col gap-1" aria-label="Mobile">
-              {NAV.map((item) => (
+            <nav className="flex flex-col gap-1" aria-label={messages.nav.mobileNav}>
+              {nav.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -154,5 +161,34 @@ export function Header() {
         </div>
       )}
     </header>
+  );
+}
+
+/**
+ * LocaleSwitcher — a compact EN | ع toggle that rewrites the URL's locale prefix.
+ * Uses full-page navigation so the cookie + provider update cleanly.
+ */
+function LocaleSwitcher() {
+  const messages = useMessages();
+  const locale = useLocale();
+  const pathname = usePathname();
+
+  // Swap the /en or /ar prefix in the current path.
+  const otherLocale = locale === "en" ? "ar" : "en";
+  const segments = pathname.split("/").filter(Boolean);
+  // segments[0] should be the current locale ("en" / "ar")
+  if (segments[0] === locale) {
+    segments[0] = otherLocale;
+  }
+  const targetPath = "/" + segments.join("/");
+
+  return (
+    <Link
+      href={targetPath}
+      className="text-meta text-ink hover:text-gold transition-colors duration-[var(--animate-duration-fast)] px-2"
+      aria-label={locale === "en" ? messages.nav.switchToArabic : messages.nav.switchToEnglish}
+    >
+      {locale === "en" ? "ع" : "EN"}
+    </Link>
   );
 }

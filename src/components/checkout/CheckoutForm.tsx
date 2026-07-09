@@ -6,10 +6,10 @@ import Link from "next/link";
 import { Input, Select } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { formatPrice, type Piasters } from "@/lib/money";
-import { messages } from "@/i18n/messages";
 import { generateIdempotencyKey } from "@/lib/orders/identifiers";
 import { ShieldIcon, ReturnIcon, PinIcon } from "@/components/ui/Icon";
 import { analytics } from "@/lib/analytics";
+import { useMessages, useLocale } from "@/i18n/MessagesProvider";
 import type { CartVM } from "@/lib/cart/repository";
 import { GOVERNORATES } from "@/lib/orders/schemas";
 
@@ -28,6 +28,8 @@ const STEP_ORDER: Step[] = ["contact", "delivery", "payment"];
 
 export function CheckoutForm({ cart }: { cart: CartVM }) {
   const router = useRouter();
+  const messages = useMessages();
+  const locale = useLocale();
   const [step, setStep] = useState<Step>("contact");
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
         id: l.name,
         name: l.name,
         variant: `${l.colorway} · ${l.size}`,
-        price: l.unitAmount / 100, // piasters → major EGP
+        price: l.unitAmount / 100,
         quantity: l.qty,
       })),
       cart.total / 100,
@@ -76,7 +78,7 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
     if (i > 0) setStep(STEP_ORDER[i - 1]!);
   }
 
-  async function placeOrder() {
+  async function submit() {
     setSubmitting(true);
     setServerError(null);
     try {
@@ -98,20 +100,18 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
         }),
       });
       const data = await res.json();
-      if (res.ok && data.ok) {
-        // Online payment: redirect to the provider's hosted checkout.
-        // COD: go straight to the confirmation page.
-        if (data.paymentRedirectUrl) {
-          window.location.href = data.paymentRedirectUrl;
-          return;
-        }
-        router.push(`/orders/${data.order.confirmToken}`);
+      if (!res.ok) {
+        setServerError(data.error ?? messages.errors.generic);
+        setSubmitting(false);
         return;
       }
-      setServerError(data.error ?? messages.errors.generic);
+      if (data.paymentRedirectUrl) {
+        window.location.href = data.paymentRedirectUrl;
+        return;
+      }
+      router.push(`/orders/${data.order.confirmToken}`);
     } catch {
       setServerError(messages.errors.generic);
-    } finally {
       setSubmitting(false);
     }
   }
@@ -120,78 +120,92 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
     return (
       <p className="py-16 text-center text-ink-soft">
         {messages.cart.empty}{" "}
-        <Link href="/aethra" className="text-gold underline">{messages.cart.continueShopping}</Link>
+        <Link href={`/${locale}/aethra`} className="text-gold underline">{messages.cart.continueShopping}</Link>
       </p>
     );
   }
 
-  return (
-    <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_380px]">
-      {/* Left: form steps */}
-      <div>
-        <StepHeader step={step} />
+  const stepLabel: Record<Step, string> = {
+    contact: messages.checkout.contact,
+    delivery: messages.checkout.delivery,
+    payment: messages.checkout.payment,
+  };
 
+  return (
+    <div className="grid gap-12 lg:grid-cols-[1fr_380px]">
+      <div>
+        {/* Step indicator */}
+        <div className="mb-8 flex gap-2 text-meta">
+          {STEP_ORDER.map((s, i) => (
+            <span key={s} className={step === s ? "text-ink" : "text-ink-soft"}>
+              {i + 1}. {stepLabel[s]}
+            </span>
+          ))}
+        </div>
+
+        {/* Step: contact */}
         {step === "contact" && (
-          <div className="mt-6 space-y-4">
-            <Input id="fullName" label="Full name" value={form.fullName} onChange={set("fullName")} autoComplete="name" />
-            <Input id="email" type="email" label="Email" value={form.email} onChange={set("email")} autoComplete="email" hint="Your order confirmation will be sent here." />
-            <Input id="phone" type="tel" label="Phone" value={form.phone} onChange={set("phone")} placeholder="01012345678" autoComplete="tel" hint="Egyptian mobile, for delivery." />
-            <Button variant="primary" onClick={next} className="mt-4">Continue to delivery</Button>
+          <div className="space-y-4">
+            <Input id="fullName" label={messages.checkout.fullName} value={form.fullName} onChange={set("fullName")} autoComplete="name" />
+            <Input id="email" type="email" label={messages.checkout.email} value={form.email} onChange={set("email")} autoComplete="email" hint={messages.checkout.emailHint} />
+            <Input id="phone" type="tel" label={messages.checkout.phone} value={form.phone} onChange={set("phone")} placeholder={messages.checkout.phonePlaceholder} autoComplete="tel" hint={messages.checkout.phoneHint} />
+            <Button variant="primary" onClick={next} className="mt-4">{messages.checkout.continueToDelivery}</Button>
           </div>
         )}
 
+        {/* Step: delivery */}
         {step === "delivery" && (
-          <div className="mt-6 space-y-4">
-            <Select id="governorate" label="Governorate" value={form.governorate} onChange={set("governorate")}>
+          <div className="space-y-4">
+            <Select id="governorate" label={messages.checkout.governorate} value={form.governorate} onChange={set("governorate")}>
               {GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
             </Select>
-            <Input id="city" label="City / Area" value={form.city} onChange={set("city")} />
-            <Input id="addressLine1" label="Address" value={form.addressLine1} onChange={set("addressLine1")} placeholder="Building, street, area" />
-            <Input id="addressLine2" label="Apartment, floor (optional)" value={form.addressLine2} onChange={set("addressLine2")} />
-            <Input id="notes" label="Delivery notes (optional)" value={form.notes} onChange={set("notes")} />
-            <div className="flex gap-3">
-              <Button variant="ghost" onClick={back}>Back</Button>
-              <Button variant="primary" onClick={next}>Continue to payment</Button>
+            <Input id="city" label={messages.checkout.city} value={form.city} onChange={set("city")} />
+            <Input id="addressLine1" label={messages.checkout.address} value={form.addressLine1} onChange={set("addressLine1")} placeholder={messages.checkout.addressPlaceholder} />
+            <Input id="addressLine2" label={messages.checkout.addressOptional} value={form.addressLine2} onChange={set("addressLine2")} />
+            <Input id="notes" label={messages.checkout.notesOptional} value={form.notes} onChange={set("notes")} />
+            <div className="flex gap-3 pt-2">
+              <Button variant="ghost" onClick={back}>{messages.checkout.back}</Button>
+              <Button variant="primary" onClick={next}>{messages.checkout.continueToPayment}</Button>
             </div>
           </div>
         )}
 
+        {/* Step: payment */}
         {step === "payment" && (
-          <div className="mt-6 space-y-4">
-            {/* Two equal-weight payment options */}
-            <fieldset className="space-y-3">
-              <legend className="text-meta mb-3 sr-only">Payment method</legend>
-
-              <PaymentOption
-                selected={method === "CARD"}
-                onSelect={() => setMethod("CARD")}
-                title={messages.checkout.payByCard}
+          <div className="space-y-6">
+            <fieldset>
+              <legend className="text-meta mb-3 sr-only">{messages.checkout.paymentMethod}</legend>
+              <label
+                className={`flex cursor-pointer items-start gap-3 border p-4 transition-colors ${method === "CARD" ? "border-ink" : "border-line"}`}
               >
-                <p className="text-xs text-ink-soft">Card, Apple Pay, or Google Pay — wallets show on supported devices.</p>
-              </PaymentOption>
-
-              <PaymentOption
-                selected={method === "COD"}
-                onSelect={() => setMethod("COD")}
-                title={messages.checkout.cashOnDelivery}
+                <input type="radio" name="method" value="CARD" checked={method === "CARD"} onChange={() => setMethod("CARD")} className="mt-1" />
+                <span>
+                  <span className="block font-medium">{messages.checkout.payByCard}</span>
+                  <span className="block text-xs text-ink-soft">{messages.checkout.cardDescription}</span>
+                </span>
+              </label>
+              <label
+                className={`mt-3 flex cursor-pointer items-start gap-3 border p-4 transition-colors ${method === "COD" ? "border-ink" : "border-line"}`}
               >
-                <p className="text-xs text-ink-soft">
-                  {messages.checkout.codNote.replace("{total}", formatPrice(cart.total as Piasters))}
-                </p>
-              </PaymentOption>
+                <input type="radio" name="method" value="COD" checked={method === "COD"} onChange={() => setMethod("COD")} className="mt-1" />
+                <span>
+                  <span className="block font-medium">{messages.checkout.cashOnDelivery}</span>
+                  {method === "COD" && cart.total && (
+                    <span className="mt-1 block text-xs text-ink-soft">
+                      {messages.checkout.codNote.replace("{total}", formatPrice(cart.total as Piasters))}
+                    </span>
+                  )}
+                </span>
+              </label>
             </fieldset>
-
-            {serverError && <p className="text-sm text-error">{serverError}</p>}
-
             <div className="flex gap-3">
-              <Button variant="ghost" onClick={back}>Back</Button>
-              <Button variant="gold" onClick={placeOrder} disabled={submitting} className="flex-1">
-                {submitting ? "Placing order…" : messages.checkout.placeOrder}
+              <Button variant="ghost" onClick={back}>{messages.checkout.back}</Button>
+              <Button variant="primary" onClick={submit} disabled={submitting}>
+                {submitting ? messages.checkout.placingOrder : messages.checkout.placeOrder}
               </Button>
             </div>
-
-            {/* Trust row */}
-            <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-ink-soft">
+            {serverError && <p className="text-sm text-error">{serverError}</p>}
+            <ul className="flex flex-wrap gap-4 text-xs text-ink-soft">
               <li className="flex items-center gap-1.5"><ShieldIcon className="h-4 w-4" /> {messages.checkout.trustSecure}</li>
               <li className="flex items-center gap-1.5"><ReturnIcon className="h-4 w-4" /> {messages.checkout.trustReturns}</li>
               <li className="flex items-center gap-1.5"><PinIcon className="h-4 w-4" /> {messages.checkout.trustAtelier}</li>
@@ -200,72 +214,21 @@ export function CheckoutForm({ cart }: { cart: CartVM }) {
         )}
       </div>
 
-      {/* Right: order summary (sticky) */}
+      {/* Order summary */}
       <aside className="border border-line bg-ivory-deep p-6 lg:sticky lg:top-24 lg:self-start">
-        <h2 className="text-meta mb-4">Order summary</h2>
-        <ul className="space-y-3">
+        <h2 className="text-meta mb-4">{messages.checkout.orderSummary}</h2>
+        <ul className="mb-4 space-y-3 text-sm">
           {cart.lines.map((line) => (
-            <li key={line.id} className="flex justify-between gap-2 text-sm">
-              <span className="text-ink">
-                {line.name} <span className="text-ink-soft">× {line.qty}</span>
-                <span className="block text-xs text-ink-soft">{line.colorway} · {line.size}</span>
-              </span>
+            <li key={line.id} className="flex justify-between gap-2">
+              <span>{line.name} <span className="text-ink-soft">×{line.qty}</span></span>
               <span className="text-price">{formatPrice(line.lineTotal)}</span>
             </li>
           ))}
         </ul>
-        <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
-          <div className="flex justify-between"><dt className="text-ink-soft">{messages.cart.subtotal}</dt><dd className="text-price">{formatPrice(cart.subtotal)}</dd></div>
-          <div className="flex justify-between"><dt className="text-ink-soft">{messages.cart.shipping}</dt><dd className="text-price">{cart.shipping === 0 ? "Free" : formatPrice(cart.shipping)}</dd></div>
-          <div className="flex justify-between border-t border-line pt-2 text-base"><dt>Total</dt><dd className="text-price">{formatPrice(cart.total)}</dd></div>
-        </dl>
+        <div className="flex justify-between"><dt className="text-ink-soft">{messages.cart.subtotal}</dt><dd className="text-price">{formatPrice(cart.subtotal)}</dd></div>
+        <div className="flex justify-between"><dt className="text-ink-soft">{messages.cart.shipping}</dt><dd className="text-price">{cart.shipping === 0 ? messages.cart.free : formatPrice(cart.shipping)}</dd></div>
+        <div className="flex justify-between border-t border-line pt-2 text-base"><dt>{messages.cart.total}</dt><dd className="text-price">{formatPrice(cart.total)}</dd></div>
       </aside>
     </div>
-  );
-}
-
-function StepHeader({ step }: { step: Step }) {
-  const idx = STEP_ORDER.indexOf(step);
-  return (
-    <ol className="flex gap-6 text-meta">
-      {STEP_ORDER.map((s, i) => (
-        <li key={s} className={i <= idx ? "text-ink" : "text-ink-soft"}>
-          {i + 1}. {s[0]!.toUpperCase() + s.slice(1)}
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/** Radio card for a payment option — equal visual weight (design-system.md §5). */
-function PaymentOption({
-  selected,
-  onSelect,
-  title,
-  children,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label
-      className={`flex cursor-pointer items-start gap-3 border p-4 transition-colors duration-[var(--animate-duration-fast)] ${
-        selected ? "border-ink bg-ivory-deep" : "border-line bg-ivory hover:border-ink-soft"
-      }`}
-    >
-      <input
-        type="radio"
-        name="payment-method"
-        checked={selected}
-        onChange={onSelect}
-        className="mt-1 accent-ink"
-      />
-      <span className="flex-1">
-        <span className="block text-sm font-medium">{title}</span>
-        <span className="mt-1 block">{children}</span>
-      </span>
-    </label>
   );
 }

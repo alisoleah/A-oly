@@ -1,19 +1,33 @@
 import type { Metadata } from "next";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { loadCartForRSC } from "@/lib/cart/repository";
-import { messages } from "@/i18n/messages";
+import { getMessages } from "@/i18n/get-messages";
+import type { Locale } from "@/i18n/config";
 
-export const metadata: Metadata = {
-  title: "Checkout",
-  alternates: { canonical: "/checkout" },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: "Checkout",
+    alternates: { canonical: `/${locale}/checkout`, languages: { en: "/en/checkout", ar: "/ar/checkout" } },
+  };
+}
 
 /**
  * /checkout — single-page checkout. Server component loads the cart (server-
  * computed totals) and hands it to the client form. No totals are ever taken
  * from the client.
  */
-export default async function CheckoutPage() {
+export default async function CheckoutPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const messages = getMessages(locale as Locale);
   const cart = await loadCartForRSC();
 
   return (

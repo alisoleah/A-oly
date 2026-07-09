@@ -1,16 +1,17 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect } from "react";
 import { useCart } from "@/components/cart/CartProvider";
 import { Button } from "@/components/ui/Button";
 import { CloseIcon, MinusIcon, PlusIcon } from "@/components/ui/Icon";
 import { formatPrice } from "@/lib/money";
-import { messages } from "@/i18n/messages";
+import { useMessages, useLocale } from "@/i18n/MessagesProvider";
 import { cn } from "@/lib/cn";
 
 /**
  * CartDrawer (design-system.md §5):
- *  - right side, ivory, 420px
+ *  - right side (left in RTL), ivory, 420px
  *  - hairline divider rows
  *  - subtotal + gold "checkout" button
  *  - free-shipping progress line in --ink-soft
@@ -20,6 +21,8 @@ import { cn } from "@/lib/cn";
  */
 export function CartDrawer() {
   const { cart, drawerOpen, closeDrawer, setQty, remove } = useCart();
+  const messages = useMessages();
+  const locale = useLocale();
 
   // Lock body scroll while open + close on Escape.
   useEffectEscape(closeDrawer, drawerOpen);
@@ -38,11 +41,11 @@ export function CartDrawer() {
         type="button"
         className="absolute inset-0 bg-ink/20"
         onClick={closeDrawer}
-        aria-label="Close cart"
+        aria-label={messages.cart.closeCart}
         tabIndex={drawerOpen ? 0 : -1}
       />
 
-      {/* Panel — right side, 420px */}
+      {/* Panel — right side (left in RTL), 420px */}
       <aside
         role="dialog"
         aria-modal="true"
@@ -54,7 +57,7 @@ export function CartDrawer() {
       >
         <header className="flex items-center justify-between border-b border-line px-6 py-4">
           <h2 className="text-meta">{messages.cart.title}</h2>
-          <button type="button" onClick={closeDrawer} aria-label="Close" className="p-1">
+          <button type="button" onClick={closeDrawer} aria-label={messages.cart.close} className="p-1">
             <CloseIcon className="h-5 w-5" />
           </button>
         </header>
@@ -92,7 +95,7 @@ export function CartDrawer() {
                         {/* Quantity stepper — pill */}
                         <div className="flex items-center border border-line">
                           <StepperBtn
-                            label="Decrease quantity"
+                            label={messages.cart.decreaseQty}
                             disabled={line.qty <= 1}
                             onClick={() => void setQty(line.variantId, line.qty - 1)}
                           >
@@ -102,7 +105,7 @@ export function CartDrawer() {
                             {line.qty}
                           </span>
                           <StepperBtn
-                            label="Increase quantity"
+                            label={messages.cart.increaseQty}
                             disabled={line.qty >= line.maxQty}
                             onClick={() => void setQty(line.variantId, line.qty + 1)}
                           >
@@ -114,7 +117,7 @@ export function CartDrawer() {
                           onClick={() => void remove(line.variantId)}
                           className="text-meta text-ink-soft hover:text-error"
                         >
-                          Remove
+                          {messages.cart.remove}
                         </button>
                       </div>
                     </div>
@@ -137,7 +140,7 @@ export function CartDrawer() {
               <span className="text-sm text-ink-soft">{messages.cart.subtotal}</span>
               <span className="text-price text-lg">{formatPrice(cart.subtotal)}</span>
             </div>
-            <Button href="/checkout" variant="gold" className="mt-4 w-full">
+            <Button href={`/${locale}/checkout`} variant="gold" className="mt-4 w-full">
               {messages.cart.checkout}
             </Button>
             <button
@@ -187,6 +190,7 @@ function FreeShippingProgress({
   subtotal: number;
   threshold: number;
 }) {
+  const messages = useMessages();
   const unlocked = remaining <= 0;
   const pct = threshold > 0 ? Math.min(100, Math.round((subtotal / threshold) * 100)) : 100;
   return (
@@ -210,7 +214,6 @@ function FreeShippingProgress({
 }
 
 // --- small effect hooks kept local to avoid extra files ---
-import { useEffect } from "react";
 function useEffectEscape(onClose: () => void, open: boolean) {
   useEffect(() => {
     if (!open) return;

@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { Size } from "@/lib/catalog";
 import { SIZE_ORDER } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
-import { messages } from "@/i18n/messages";
+import { useMessages } from "@/i18n/MessagesProvider";
 import { FilterIcon, CloseIcon } from "@/components/ui/Icon";
 
 /**
@@ -43,6 +43,7 @@ export function FilterSidebar({
   onChange: (next: FilterState) => void;
   resultCount: number;
 }) {
+  const messages = useMessages();
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduce = useReducedMotion();
 

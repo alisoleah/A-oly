@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/lib/money";
 import { cn } from "@/lib/cn";
-import { messages } from "@/i18n/messages";
+import { useMessages, useLocale } from "@/i18n/MessagesProvider";
 import { useQuickView } from "@/components/product/QuickViewProvider";
 import type { ProductCardVM } from "@/lib/catalog";
 
@@ -22,10 +22,12 @@ import type { ProductCardVM } from "@/lib/catalog";
  */
 export function ProductCard({ product }: { product: ProductCardVM }) {
   const { open } = useQuickView();
+  const messages = useMessages();
+  const locale = useLocale();
   const href =
     product.collection === "AETHRA"
-      ? `/aethra/${product.slug}`
-      : `/aether/${product.slug}`;
+      ? `/${locale}/aethra/${product.slug}`
+      : `/${locale}/aether/${product.slug}`;
 
   return (
     <div className="group block">

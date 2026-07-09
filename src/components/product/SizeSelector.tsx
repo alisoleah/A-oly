@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { messages } from "@/i18n/messages";
+import { useMessages } from "@/i18n/MessagesProvider";
 
 /**
  * SizeSelector (design-system.md §5):
@@ -26,6 +26,7 @@ export function SizeSelector({
   selected: string | null;
   onSelect: (size: string) => void;
 }) {
+  const messages = useMessages();
   return (
     <fieldset className="mt-6">
       <legend className="text-meta mb-3">{messages.product.selectSize}</legend>

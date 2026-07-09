@@ -11,7 +11,7 @@ import {
   type Facets,
 } from "@/components/catalog/FilterSidebar";
 import { SortSelect, type SortKey } from "@/components/catalog/SortSelect";
-import { messages } from "@/i18n/messages";
+import { useMessages } from "@/i18n/MessagesProvider";
 
 /**
  * ProductGrid — the interactive listing surface.
@@ -24,6 +24,7 @@ import { messages } from "@/i18n/messages";
  * Layout: filter rail (left, desktop) + main column (sort bar + card grid).
  */
 export function ProductGrid({ products }: { products: ProductCardVM[] }) {
+  const messages = useMessages();
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState<SortKey>("featured");
 

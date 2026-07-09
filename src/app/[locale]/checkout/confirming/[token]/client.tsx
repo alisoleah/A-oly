@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { messages } from "@/i18n/messages";
+import { useMessages, useLocale } from "@/i18n/MessagesProvider";
 
 /**
  * Polls the order status every ~1.5s and reflects the webhook outcome.
@@ -14,6 +14,8 @@ import { messages } from "@/i18n/messages";
  */
 export function ConfirmingClient({ token }: { token: string }) {
   const router = useRouter();
+  const messages = useMessages();
+  const locale = useLocale();
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export function ConfirmingClient({ token }: { token: string }) {
         const data = (await res.json()) as { status: string };
         if (stopped) return;
         if (data.status === "PAID") {
-          router.push(`/orders/${token}`);
+          router.push(`/${locale}/orders/${token}`);
           return;
         }
         if (data.status === "CANCELLED" || data.status === "REFUNDED") {
@@ -41,12 +43,12 @@ export function ConfirmingClient({ token }: { token: string }) {
     return () => {
       stopped = true;
     };
-  }, [token, router]);
+  }, [token, router, locale]);
 
   if (failed) {
     return (
       <div className="container-brand section-y text-center">
-        <h1 className="font-display text-3xl mb-3 lowercase">payment could not be confirmed</h1>
+        <h1 className="font-display text-3xl mb-3 lowercase">{messages.errors.paymentNotConfirmed}</h1>
         <p className="text-ink-soft mb-6">{messages.errors.paymentFailed}</p>
       </div>
     );

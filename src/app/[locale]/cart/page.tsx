@@ -3,12 +3,20 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { loadCartForRSC } from "@/lib/cart/repository";
 import { formatPrice } from "@/lib/money";
-import { messages } from "@/i18n/messages";
+import { getMessages } from "@/i18n/get-messages";
+import type { Locale } from "@/i18n/config";
 
-export const metadata: Metadata = {
-  title: "Bag",
-  alternates: { canonical: "/cart" },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: "Bag",
+    alternates: { canonical: `/${locale}/cart`, languages: { en: "/en/cart", ar: "/ar/cart" } },
+  };
+}
 
 /**
  * /cart — full-page cart view (fallback to the drawer; also reachable directly).
@@ -16,7 +24,13 @@ export const metadata: Metadata = {
  * is written here (Next.js forbids cookie writes in RSC). The cart is created
  * lazily via the API route / server actions when the visitor adds something.
  */
-export default async function CartPage() {
+export default async function CartPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const messages = getMessages(locale as Locale);
   const cart = await loadCartForRSC();
 
   return (
@@ -26,7 +40,7 @@ export default async function CartPage() {
       {cart.lines.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-ink-soft">{messages.cart.empty}</p>
-          <Link href="/aethra" className="text-meta text-gold hover:text-gold-soft mt-4 inline-block">
+          <Link href={`/${locale}/aethra`} className="text-meta text-gold hover:text-gold-soft mt-4 inline-block">
             {messages.cart.continueShopping}
           </Link>
         </div>
@@ -48,7 +62,7 @@ export default async function CartPage() {
                   </div>
                   <p className="text-meta mt-1">{line.colorway} · {line.size}</p>
                   <p className="text-meta mt-1 text-ink-soft">
-                    {formatPrice(line.unitAmount)} each
+                    {formatPrice(line.unitAmount)} {messages.cart.each}
                   </p>
                 </div>
               </li>
@@ -57,7 +71,7 @@ export default async function CartPage() {
 
           {/* Summary */}
           <aside className="border border-line bg-ivory-deep p-6 lg:sticky lg:top-24 lg:self-start">
-            <h2 className="text-meta mb-4">Summary</h2>
+            <h2 className="text-meta mb-4">{messages.cart.summary}</h2>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-ink-soft">{messages.cart.subtotal}</dt>
@@ -66,17 +80,17 @@ export default async function CartPage() {
               <div className="flex justify-between">
                 <dt className="text-ink-soft">{messages.cart.shipping}</dt>
                 <dd className="text-price">
-                  {cart.shipping === 0 ? "Free" : formatPrice(cart.shipping)}
+                  {cart.shipping === 0 ? messages.cart.free : formatPrice(cart.shipping)}
                 </dd>
               </div>
               <div className="flex justify-between border-t border-line pt-2 mt-2 text-base">
-                <dt>Total</dt>
+                <dt>{messages.cart.total}</dt>
                 <dd className="text-price">{formatPrice(cart.total)}</dd>
               </div>
             </dl>
-            <p className="mt-4 text-xs text-ink-soft">
-              Checkout is part of the next phase.
-            </p>
+            <Link href={`/${locale}/checkout`} className="mt-6 block w-full bg-ink text-center py-3 text-sm uppercase tracking-[0.1em] text-ivory hover:bg-ink-soft transition-colors">
+              {messages.cart.checkout}
+            </Link>
           </aside>
         </div>
       )}

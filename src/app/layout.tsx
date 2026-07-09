@@ -1,21 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Cormorant_Garamond } from "next/font/google";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { CartProvider } from "@/components/cart/CartProvider";
-import { CartDrawer } from "@/components/cart/CartDrawer";
-import { QuickViewProvider } from "@/components/product/QuickViewProvider";
-import { ScrollToTop } from "@/components/ui/ScrollToTop";
-import { AnalyticsScripts } from "@/components/analytics/AnalyticsScripts";
-import { messages } from "@/i18n/messages";
-import { env } from "@/lib/env";
+import { Inter, Cormorant_Garamond, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { cookies } from "next/headers";
+import { messagesEn } from "@/i18n/messages.en";
+import { isLocale, dir as getDir, langTag } from "@/i18n/config";
 import "./globals.css";
 
 /**
- * Font wiring (design-system.md §1).
- * next/font self-hosts and exposes CSS vars (--font-inter / --font-cormorant),
- * which globals.css maps into the Tailwind theme as --font-body / --font-display.
- * No external <link> requests → no layout shift, better Lighthouse.
+ * ROOT layout — the only place <html> and <body> exist (Next.js requirement).
+ *
+ * Reads the NEXT_LOCALE cookie (set by middleware) to set <html lang> + <html dir>
+ * and pick the right font set. Latin fonts (Inter + Cormorant) always load;
+ * IBM Plex Sans Arabic loads for the Arabic subset and is applied via a CSS var
+ * swap in globals.css when dir="rtl".
+ *
+ * All UI chrome (Header/Footer/CartDrawer/QuickViewProvider/MessagesProvider)
+ * lives in [locale]/layout.tsx — not here — because it needs the resolved locale
+ * param which is only available inside the [locale] segment.
+ *
+ * Font wiring (design-system.md §1): next/font self-hosts + exposes CSS vars.
  */
 const inter = Inter({
   subsets: ["latin"],
@@ -30,19 +32,26 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
+const arabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500"],
+  variable: "--font-arabic",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  metadataBase: new URL(env.APP_BASE_URL),
+  metadataBase: new URL(process.env.APP_BASE_URL || "http://localhost:3000"),
   title: {
-    default: `${messages.brand.name} — ${messages.brand.tagline}`,
-    template: `%s — ${messages.brand.name}`,
+    default: `${messagesEn.brand.name} — ${messagesEn.brand.tagline}`,
+    template: `%s — ${messagesEn.brand.name}`,
   },
   description:
     "A small wardrobe of considered garments, cut in Como-woven cloth and finished by hand in Cairo. One perfect piece.",
   openGraph: {
     type: "website",
-    title: `${messages.brand.name} — ${messages.brand.tagline}`,
-    description: messages.brand.promise,
-    url: env.APP_BASE_URL,
+    title: `${messagesEn.brand.name} — ${messagesEn.brand.tagline}`,
+    description: messagesEn.brand.promise,
+    url: process.env.APP_BASE_URL || "http://localhost:3000",
   },
 };
 
@@ -50,24 +59,25 @@ export const viewport: Viewport = {
   themeColor: "#F7F4EE",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Resolve locale from the cookie middleware sets. Falls back to "en".
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value;
+  const locale = isLocale(cookieLocale) ? cookieLocale : "en";
+  const direction = getDir(locale);
+
   return (
-    <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
+    <html
+      lang={langTag(locale)}
+      dir={direction}
+      className={`${inter.variable} ${cormorant.variable} ${arabic.variable}`}
+    >
       <body className="bg-ivory text-ink antialiased">
-        <AnalyticsScripts />
-        <CartProvider>
-          <QuickViewProvider>
-            <Header />
-            <main className="min-h-[60vh]">{children}</main>
-            <Footer />
-            <CartDrawer />
-            <ScrollToTop />
-          </QuickViewProvider>
-        </CartProvider>
+        {children}
       </body>
     </html>
   );

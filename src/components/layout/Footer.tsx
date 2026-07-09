@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
-import { messages } from "@/i18n/messages";
+import type { Messages } from "@/i18n/messages.en";
+import type { Locale } from "@/i18n/config";
 
 /**
  * Footer — ivory-deep field, three columns (shop / house / care),
  * newsletter, payment method marks (design-system.md §3).
+ *
+ * Server component; receives the resolved messages + locale as props (it can't
+ * use useMessages because it's not a client component, and the locale param
+ * lives in [locale]/layout.tsx which renders this).
  */
-export function Footer() {
+export function Footer({ messages, locale }: { messages: Messages; locale: Locale }) {
   const year = new Date().getFullYear();
 
   return (
@@ -36,33 +41,33 @@ export function Footer() {
           </div>
 
           {/* Link columns */}
-          <nav className="md:col-span-2 md:col-start-7" aria-label="Shop">
+          <nav className="md:col-span-2 md:col-start-7" aria-label={messages.footer.shop}>
             <h2 className="text-meta mb-4">{messages.footer.shop}</h2>
             <ul className="space-y-3">
-              <li><Link className="text-ink hover:text-gold transition-colors" href="/aether">{messages.footer.links.aether}</Link></li>
-              <li><Link className="text-ink hover:text-gold transition-colors" href="/aethra">{messages.footer.links.aethra}</Link></li>
+              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/aether`}>{messages.footer.links.aether}</Link></li>
+              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/aethra`}>{messages.footer.links.aethra}</Link></li>
             </ul>
           </nav>
-          <nav className="md:col-span-2" aria-label="House">
+          <nav className="md:col-span-2" aria-label={messages.footer.house}>
             <h2 className="text-meta mb-4">{messages.footer.house}</h2>
             <ul className="space-y-3">
-              <li><Link className="text-ink hover:text-gold transition-colors" href="/about">{messages.footer.links.about}</Link></li>
-              <li><Link className="text-ink hover:text-gold transition-colors" href="/journal">{messages.footer.links.journal}</Link></li>
+              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/about`}>{messages.footer.links.about}</Link></li>
+              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/journal`}>{messages.footer.links.journal}</Link></li>
             </ul>
           </nav>
-          <nav className="md:col-span-2" aria-label="Care">
+          <nav className="md:col-span-2" aria-label={messages.footer.care}>
             <h2 className="text-meta mb-4">{messages.footer.care}</h2>
             <ul className="space-y-3">
-              <li><Link className="text-ink hover:text-gold transition-colors" href="/shipping">{messages.footer.links.shipping}</Link></li>
-              <li><Link className="text-ink hover:text-gold transition-colors" href="/sizing">{messages.footer.links.sizing}</Link></li>
-              <li><Link className="text-ink hover:text-gold transition-colors" href="/contact">{messages.footer.links.contact}</Link></li>
+              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/shipping`}>{messages.footer.links.shipping}</Link></li>
+              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/sizing`}>{messages.footer.links.sizing}</Link></li>
+              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/contact`}>{messages.footer.links.contact}</Link></li>
             </ul>
           </nav>
         </div>
 
         {/* Bottom row: payment marks + copyright */}
         <div className="mt-16 flex flex-col items-start justify-between gap-6 border-t border-line pt-8 md:flex-row md:items-center">
-          <div className="flex items-center gap-3" aria-label="Accepted payment methods">
+          <div className="flex items-center gap-3" aria-label={messages.footer.paymentMethods}>
             <PaymentMark label="Visa" />
             <PaymentMark label="Mastercard" />
             <PaymentMark label="Apple Pay" />
