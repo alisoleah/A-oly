@@ -48,21 +48,6 @@ export function Footer({ messages, locale }: { messages: Messages; locale: Local
               <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/aethra`}>{messages.footer.links.aethra}</Link></li>
             </ul>
           </nav>
-          <nav className="md:col-span-2" aria-label={messages.footer.house}>
-            <h2 className="text-meta mb-4">{messages.footer.house}</h2>
-            <ul className="space-y-3">
-              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/about`}>{messages.footer.links.about}</Link></li>
-              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/journal`}>{messages.footer.links.journal}</Link></li>
-            </ul>
-          </nav>
-          <nav className="md:col-span-2" aria-label={messages.footer.care}>
-            <h2 className="text-meta mb-4">{messages.footer.care}</h2>
-            <ul className="space-y-3">
-              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/shipping`}>{messages.footer.links.shipping}</Link></li>
-              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/sizing`}>{messages.footer.links.sizing}</Link></li>
-              <li><Link className="text-ink hover:text-gold transition-colors" href={`/${locale}/contact`}>{messages.footer.links.contact}</Link></li>
-            </ul>
-          </nav>
         </div>
 
         {/* Bottom row: payment marks + copyright */}

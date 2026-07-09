@@ -32,7 +32,6 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://www.facebook.com", // Meta Pixel img beacon
       "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com",
       "font-src 'self' data:",
-      "connect-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

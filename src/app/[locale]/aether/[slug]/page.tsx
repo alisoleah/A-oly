@@ -4,11 +4,23 @@ import {
   loadProductDetail,
   ProductDetailView,
 } from "@/components/product/ProductDetail";
+import { locales } from "@/i18n/config";
+import { prisma } from "@/lib/prisma";
 
 /**
  * /aether/[slug] — Aether-line product detail.
  * Resolves by slug; notFound() (404) if missing or unpublished.
  */
+
+export async function generateStaticParams() {
+  const products = await prisma.product.findMany({
+    where: { published: true, collection: "AETHER" },
+    select: { slug: true },
+  });
+  return locales.flatMap((locale) =>
+    products.map((p) => ({ locale, slug: p.slug })),
+  );
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale: string }> }) {
   const { slug } = await params;

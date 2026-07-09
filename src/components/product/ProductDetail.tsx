@@ -4,7 +4,10 @@ import { Gallery } from "@/components/product/Gallery";
 import { BuyPanel } from "@/components/product/BuyPanel";
 import { getProductBySlug, type ProductDetailVM } from "@/lib/catalog";
 import { env } from "@/lib/env";
-import { messages } from "@/i18n/messages";
+
+/** Brand name is a proper noun — identical in all locales, so it's a constant
+ *  rather than a messages lookup (keeps this module locale-agnostic). */
+const BRAND_NAME = "aïoly";
 
 /**
  * Shared product detail view, used by /aether/[slug] and /aethra/[slug].
@@ -26,7 +29,7 @@ export function buildProductMetadata(p: ProductDetailVM): Metadata {
     alternates: { canonical: `/${p.collection.toLowerCase()}/${p.slug}` },
     openGraph: {
       type: "website",
-      title: `${p.name} — ${messages.brand.name}`,
+      title: `${p.name} — ${BRAND_NAME}`,
       description: p.description.slice(0, 155),
       url: `${env.APP_BASE_URL}/${p.collection.toLowerCase()}/${p.slug}`,
       images: image ? [{ url: image.url, alt: image.alt }] : [],
@@ -53,7 +56,7 @@ export function buildProductJsonLd(p: ProductDetailVM) {
     name: p.name,
     description: p.description,
     image: image ? [`${env.APP_BASE_URL}${image}`] : undefined,
-    brand: { "@type": "Brand", name: messages.brand.name },
+    brand: { "@type": "Brand", name: BRAND_NAME },
     category: p.collection,
     offers: {
       "@type": "AggregateOffer",

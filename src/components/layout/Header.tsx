@@ -25,11 +25,10 @@ export function Header() {
   const { cart, openDrawer } = useCart();
   const cartCount = cart?.itemCount ?? 0;
 
+  // Only collections that have real pages. About/Journal removed (no pages yet).
   const nav = [
     { href: `/${locale}/aether`, label: messages.nav.aether },
     { href: `/${locale}/aethra`, label: messages.nav.aethra },
-    { href: `/${locale}/about`, label: messages.nav.about },
-    { href: `/${locale}/journal`, label: messages.nav.journal },
   ];
 
   useEffect(() => {
@@ -89,19 +88,8 @@ export function Header() {
           <span className="hidden md:block"><Logo size="md" /></span>
         </div>
 
-        {/* Right: remaining nav (desktop), locale switcher, search, cart */}
+        {/* Right: locale switcher, search, cart */}
         <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
-          <nav className="hidden md:flex items-center gap-8" aria-label={messages.nav.secondaryNav}>
-            {nav.slice(2).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-meta text-ink hover:text-gold transition-colors duration-[var(--animate-duration-fast)]"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
           <LocaleSwitcher />
           <button
             type="button"
