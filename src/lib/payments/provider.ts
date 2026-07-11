@@ -24,8 +24,10 @@ export interface OrderForPayment {
   /** Integer piasters the customer must pay. */
   amount: Piasters;
   currency: string; // "EGP"
-  /** Customer email (Paymob uses it for the intention + receipts). */
+  /** Customer email (providers use it for the intention + receipts). */
   email: string;
+  /** Customer phone (Fawry requires it; Paymob uses it optionally). */
+  phone: string;
   /** First name for the hosted-checkout prefill. */
   firstName: string;
 }

@@ -60,6 +60,7 @@ export async function POST(request: Request) {
         amount: order.total,
         currency: order.currency,
         email: order.email,
+        phone: parsed.data.contact.phone,
         firstName: parsed.data.contact.fullName.split(" ")[0] ?? "Customer",
       });
       paymentRedirectUrl = intent.redirectUrl;

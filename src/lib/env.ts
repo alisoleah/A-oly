@@ -29,8 +29,8 @@ const envSchema = z.object({
     .string()
     .min(32, "SESSION_SECRET must be at least 32 characters"),
 
-  /** Payment provider selection. mock = dev/test, paymob = prod. */
-  PAYMENT_PROVIDER: z.enum(["mock", "paymob"]).default("mock"),
+  /** Payment provider selection. mock = dev/test, fawry/paymob = prod. */
+  PAYMENT_PROVIDER: z.enum(["mock", "fawry", "paymob"]).default("mock"),
 
   /** Paymob Intention API / unified checkout credentials. */
   PAYMOB_API_KEY: z.string().optional(),
@@ -39,6 +39,14 @@ const envSchema = z.object({
   PAYMOB_IFRAME_ID: z.string().optional(),
   /** EGP minor units per major unit. Paymob EGP uses 100 cents = 1 EGP. */
   PAYMOB_CENTS_FACTOR: z.coerce.number().int().positive().default(100),
+
+  /** FawryPay hosted checkout credentials. */
+  FAWRY_MERCHANT_CODE: z.string().optional(),
+  FAWRY_SECURE_KEY: z.string().optional(),
+  /** Base URL — staging vs production FawryPay API. */
+  FAWRY_API_URL: z.string().url().default("https://atfawry.fawrystaging.com/ECommerceWeb/Fawry/payments/charge"),
+  /** Where Fawry redirects the customer after payment (our hosted return page). */
+  FAWRY_RETURN_URL: z.string().optional(),
 
   /** Reservation TTL — minutes an online-payment order holds stock. */
   RESERVATION_TTL_MINUTES: z.coerce.number().int().positive().default(30),
@@ -111,6 +119,17 @@ export function withInvariants(env: Env): Env {
     if (missing.length) {
       throw new Error(
         `PAYMENT_PROVIDER=paymob requires: ${missing.join(", ")}. Set them in .env or use PAYMENT_PROVIDER=mock.`,
+      );
+    }
+  }
+  if (env.PAYMENT_PROVIDER === "fawry") {
+    const missing = [
+      "FAWRY_MERCHANT_CODE",
+      "FAWRY_SECURE_KEY",
+    ].filter((k) => !env[k as keyof Env]);
+    if (missing.length) {
+      throw new Error(
+        `PAYMENT_PROVIDER=fawry requires: ${missing.join(", ")}. Set them in .env or use PAYMENT_PROVIDER=mock.`,
       );
     }
   }
