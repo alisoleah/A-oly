@@ -29,8 +29,8 @@ const envSchema = z.object({
     .string()
     .min(32, "SESSION_SECRET must be at least 32 characters"),
 
-  /** Payment provider selection. mock = dev/test, fawry/paymob = prod. */
-  PAYMENT_PROVIDER: z.enum(["mock", "fawry", "paymob"]).default("mock"),
+  /** Payment provider selection. mock = dev/test, 2c2p/fawry/paymob = prod. */
+  PAYMENT_PROVIDER: z.enum(["mock", "2c2p", "fawry", "paymob"]).default("mock"),
 
   /** Paymob Intention API / unified checkout credentials. */
   PAYMOB_API_KEY: z.string().optional(),
@@ -47,6 +47,12 @@ const envSchema = z.object({
   FAWRY_API_URL: z.string().url().default("https://atfawry.fawrystaging.com/ECommerceWeb/Fawry/payments/charge"),
   /** Where Fawry redirects the customer after payment (our hosted return page). */
   FAWRY_RETURN_URL: z.string().optional(),
+
+  /** 2C2P Redirect API credentials. */
+  TWO_C_TWO_P_MERCHANT_ID: z.string().optional(),
+  TWO_C_TWO_P_SECRET_KEY: z.string().optional(),
+  /** Staging: https://demo2.2c2p.com — Prod: https://t.2c2p.com */
+  TWO_C_TWO_P_API_URL: z.string().url().default("https://demo2.2c2p.com/2C2PFrontEnd/RedirectPayment.htm"),
 
   /** Reservation TTL — minutes an online-payment order holds stock. */
   RESERVATION_TTL_MINUTES: z.coerce.number().int().positive().default(30),
@@ -130,6 +136,17 @@ export function withInvariants(env: Env): Env {
     if (missing.length) {
       throw new Error(
         `PAYMENT_PROVIDER=fawry requires: ${missing.join(", ")}. Set them in .env or use PAYMENT_PROVIDER=mock.`,
+      );
+    }
+  }
+  if (env.PAYMENT_PROVIDER === "2c2p") {
+    const missing = [
+      "TWO_C_TWO_P_MERCHANT_ID",
+      "TWO_C_TWO_P_SECRET_KEY",
+    ].filter((k) => !env[k as keyof Env]);
+    if (missing.length) {
+      throw new Error(
+        `PAYMENT_PROVIDER=2c2p requires: ${missing.join(", ")}. Set them in .env or use PAYMENT_PROVIDER=mock.`,
       );
     }
   }
